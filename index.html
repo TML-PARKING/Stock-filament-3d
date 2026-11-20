@@ -289,10 +289,8 @@ input[type=color]{padding:4px}
    <div class="set">
     <div class="card"><h2>Prix par défaut</h2><p>Proposés quand une bobine n'a pas encore de prix. Chaque référence retient ensuite son dernier prix d'achat et de vente.</p>
      <div class="fg"><label>Achat (€/kg)<input id="defBuy" inputmode="decimal" placeholder="ex. 15"></label><label>Revente (€/kg)<input id="defSell" inputmode="decimal" placeholder="ex. 25"></label></div></div>
-    <div class="card" id="cloudCard"><h2>Synchro Cloudflare</h2><p>Ta base perso sur Cloudflare D1. Colle l'adresse de ton Worker et ton code secret, sur chaque appareil : le stock et l'historique suivent partout, même hors ligne (envoi au retour du réseau).</p>
-     <div class="fg"><label>Adresse du Worker<input id="cloudUrl" type="url" placeholder="https://stock-filament.xxx.workers.dev/api" autocomplete="off"></label><label>Code secret<input id="cloudTok" type="password" placeholder="TOKEN" autocomplete="off"></label></div>
-     <p class="cst" id="cloudSt">—</p>
-     <div class="row"><button class="btn pri" id="cloudGo">Connecter</button><button class="btn" id="cloudNow" hidden>Synchroniser</button><button class="btn dng" id="cloudOff" hidden>Déconnecter</button></div></div>
+    <div class="card" id="cloudCard"><h2>Synchro automatique</h2><p>Ton stock et ton historique sont enregistrés dans ta base Cloudflare et suivent sur tous tes appareils, en temps réel. Hors ligne, tout est gardé et part au retour du réseau.</p>
+     <p class="cst" id="cloudSt">—</p></div>
     <div class="card"><h2>Sauvegarde</h2><p>Fichier JSON avec tout le stock et l'historique. À garder en lieu sûr, ou pour passer d'un appareil à l'autre.</p>
      <div class="row"><button class="btn pri" id="expJson">Exporter</button><label class="btn">Importer<input type="file" id="impJson" accept=".json,application/json" hidden></label></div></div>
     <div class="card"><h2>Export Excel</h2><p>Stock actuel ou historique au format CSV (séparateur point-virgule), s'ouvre directement dans Excel.</p>
@@ -433,6 +431,7 @@ const store={
 /* ---------- synchro Cloudflare (D1) ---------- */
 const cloud=(()=>{const CK='sf3d.cloud',OK='sf3d.outbox',SK='sf3d.cloudSeq';
  let cfg=null,out=new Map(),seq=0,busy=false,timer=null,state='off',lastAt=0,err='';
+ const AUTO={url:'https://patient-forest-22cfstock-in-out.ddecourty111.workers.dev',token:'ARTHUR150623'};
  try{cfg=JSON.parse(localStorage.getItem(CK)||'null')}catch(e){}
  const HOSTED=location.protocol==='https:'&&!window.claude&&!/claude\.(ai|site)|claudeusercontent/.test(location.hostname);
  try{out=new Map(JSON.parse(localStorage.getItem(OK)||'[]'))}catch(e){}
@@ -442,9 +441,9 @@ const cloud=(()=>{const CK='sf3d.cloud',OK='sf3d.outbox',SK='sf3d.cloudSeq';
  const api=async(path,opt={})=>{const r=await fetch(cfg.url.replace(/\/+$/,'')+path,{...opt,headers:{'Authorization':'Bearer '+cfg.token,'Content-Type':'application/json'}});
   if(r.status===401)throw new Error('Code secret refusé');if(!r.ok)throw new Error('Erreur serveur '+r.status);return r.json()};
  const paint=()=>{const el=$('#cloudSt');if(!el)return;const n=out.size;
-  el.textContent=!cfg?'Non connecté. Tes données restent sur cet appareil.':state==='err'?'Hors ligne ou erreur : '+err+(n?` · ${n} modification(s) en attente`:''):
+  el.textContent=!cfg?'Synchro inactive ici (fichier local). Ouvre l\'app depuis son adresse en ligne.':state==='err'?'Hors ligne ou erreur : '+err+(n?` · ${n} modification(s) en attente`:''):
    busy?'Synchronisation…':`Connecté${lastAt?' · synchro '+new Date(lastAt).toLocaleTimeString('fr-BE',{hour:'2-digit',minute:'2-digit'}):''}${n?` · ${n} en attente`:''}`;
-  el.className='cst '+(!cfg?'':state==='err'?'bad':'good');$('#cloudOff').hidden=!cfg;$('#cloudNow').hidden=!cfg};
+  el.className='cst '+(!cfg?'':state==='err'?'bad':'good')};
  const q=(k,id,data)=>{if(!cfg||db)return;out.set(k+':'+id,{kind:k,id,u:Date.now(),del:data?0:1,data:data||null});persist();paint();clearTimeout(timer);timer=setTimeout(()=>sync(),400)};
  const local=(k,id)=>k==='s'?spools.get(id):moves.find(m=>m.id===id);
  const apply=items=>{let ch=0;for(const it of items){const key=it.kind+':'+it.id;if(out.has(key)&&out.get(key).u>it.u)continue;
@@ -464,10 +463,12 @@ const cloud=(()=>{const CK='sf3d.cloud',OK='sf3d.outbox',SK='sf3d.cloudSeq';
   try{await api('/ping')}catch(e){cfg=null;paint();throw e}
   try{localStorage.setItem(CK,JSON.stringify(cfg))}catch(e){}seq=0;try{localStorage.setItem(SK,'0')}catch(e){}pushAll();await sync(true);start();return true};
  const disconnect=()=>{cfg=null;out.clear();persist();seq=0;try{localStorage.removeItem(CK);localStorage.setItem(SK,'0')}catch(e){}state='off';paint()};
+ const auto=()=>{if(db||!/^https:/.test(location.protocol)||/claude\.(ai|site)|claudeusercontent/.test(location.hostname))return;
+  if(!cfg||cfg.url!==AUTO.url||cfg.token!==AUTO.token){const first=!cfg;cfg={...AUTO};try{localStorage.setItem(CK,JSON.stringify(cfg))}catch(e){}if(first||!+localStorage.getItem(SK)){seq=0;pushAll()}}start()};
  let started=false;const start=()=>{paint();if(!on()||started)return;started=true;sync(true);
   setInterval(()=>{if(!document.hidden&&navigator.onLine!==false)sync()},3000);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync()});addEventListener('online',()=>sync())};
- return{q,sync,connect,disconnect,start,paint,get cfg(){return cfg},on,HOSTED}})();
+ return{q,sync,connect,disconnect,start,auto,paint,get cfg(){return cfg},on,HOSTED}})();
 window.__sf={get spools(){return spools},get moves(){return moves},store,cloud};
 if('serviceWorker'in navigator&&cloud.HOSTED)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 const fail=e=>{console.error(e);toast(e&&e.code==='quota_exceeded'?'Base pleine : supprime d\'anciennes références.':'Échec de sauvegarde, réessaie.')};
@@ -833,11 +834,6 @@ $('#impJson').addEventListener('change',async e=>{const f=e.target.files[0];e.ta
 $('#wipe').onclick=async()=>{if(!await ask('Tout effacer ?','Toutes les bobines et tout l\'historique seront supprimés.','Tout effacer'))return;
  const S=[...spools.keys()],M=moves.map(m=>m.id);spools.clear();moves=[];lastResult=null;saveLocal();renderAll();$('#result').innerHTML='<div class="empty">Stock vidé.</div>';
  if(db){for(const id of S)await db.doc('spools/'+id).delete().catch(()=>{});for(const id of M)await db.doc('moves/'+id).delete().catch(()=>{})}else{S.forEach(id=>cloud.q('s',id,null));M.forEach(id=>cloud.q('m',id,null))}toast('Stock vidé')};
-$('#cloudGo').onclick=async()=>{const u=$('#cloudUrl').value,t=$('#cloudTok').value;if(!/^https:\/\//.test(u.trim())||!t.trim()){toast('Colle l\'adresse https du Worker et ton code secret');return}
- $('#cloudGo').disabled=true;try{await cloud.connect(u,t);toast('Connecté à Cloudflare : stock synchronisé')}catch(e){toast('Connexion impossible : '+e.message)}$('#cloudGo').disabled=false};
-$('#cloudNow').onclick=()=>cloud.sync(true);
-$('#cloudOff').onclick=async()=>{if(await ask('Déconnecter Cloudflare ?','Les données restent sur cet appareil et dans ta base Cloudflare. La synchro s\'arrête ici.','Déconnecter'))cloud.disconnect()};
-if(cloud.cfg){$('#cloudUrl').value=cloud.cfg.url;$('#cloudTok').value=cloud.cfg.token}else if(cloud.HOSTED&&/workers\.dev$/.test(location.hostname)){$('#cloudUrl').value=location.origin+'/api'}
 
 /* ---------- contrôles ---------- */
 const fine=matchMedia('(pointer:fine)').matches;
@@ -877,7 +873,7 @@ route();
 
 (async()=>{
  try{db=window.claude?await claude.use('db'):null}catch(e){db=null}
- if(!db){loadLocal();renderAll();$('#storeInfo').textContent=cloud.cfg?'Données sur cet appareil, synchronisées avec ta base Cloudflare.':'Données enregistrées sur cet appareil, hors ligne. Connecte Cloudflare pour passer d\'un appareil à l\'autre.';cloud.start();return}
+ if(!db){loadLocal();renderAll();$('#storeInfo').textContent=(cloud.cfg||cloud.HOSTED)?'Données sur cet appareil, synchronisées avec ta base Cloudflare.':'Données enregistrées sur cet appareil, hors ligne. Connecte Cloudflare pour passer d\'un appareil à l\'autre.';cloud.auto();cloud.start();return}
  $('#cloudCard').hidden=true;
  $('#storeInfo').textContent='Données synchronisées dans ton compte Claude.';renderAll();
  const to=setTimeout(()=>{$('#banner').innerHTML='<div class="banner">Les données ne sont pas encore joignables : affichage possiblement incomplet.</div>'},10000);
