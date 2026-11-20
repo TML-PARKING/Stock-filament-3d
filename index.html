@@ -120,6 +120,9 @@ input[type=color]{padding:4px}
 .camwrap .flash.on{opacity:.35;transition:none}
 .camtop{position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;gap:8px}
 .camtop .tag{height:34px;font-size:15px}
+.camctl{position:absolute;right:12px;bottom:12px;display:flex;gap:8px}.camctl button{width:48px;height:48px;border-radius:14px;background:rgba(0,0,0,.55);color:#fff;display:grid;place-items:center}.camctl button.on{background:var(--acc)}.camctl button[hidden]{display:none}
+.camhint{position:absolute;left:12px;bottom:16px;right:130px;font-size:12px;color:#dfe3ea;text-shadow:0 1px 2px #000}
+#zoomBox[hidden]{display:none!important}
 .cambody{padding:14px 16px 18px;display:grid;gap:10px;background:#111418}
 .camlog{display:grid;gap:6px;max-height:170px;overflow:auto;font-size:14px}
 .camlog div{display:flex;gap:10px;align-items:center;background:#1e2228;border-radius:12px;padding:8px 10px}
@@ -319,9 +322,12 @@ input[type=color]{padding:4px}
 
 <dialog id="cam" class="cam" aria-label="Scanner caméra">
  <div class="camwrap"><video id="video" playsinline muted></video><div class="frame"></div><div class="laser"></div><div class="flash" id="flash"></div>
-  <div class="camtop"><span class="tag IN" id="camMode">IN</span><span class="tag" style="background:rgba(0,0,0,.55)" id="camCount">0 scan</span></div></div>
+  <div class="camtop"><span class="tag IN" id="camMode">IN</span><span class="tag" style="background:rgba(0,0,0,.55)" id="camCount">0 scan</span></div>
+  <div class="camctl"><button type="button" id="camSwitch" aria-label="Changer de caméra"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><path d="M9 13a3 3 0 0 1 5-2.2M15 13a3 3 0 0 1-5 2.2M14 9v2h-2M10 17v-2h2"/></svg></button><button type="button" id="camTorch" aria-label="Lampe" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3h8l-1 6H9zM9 9l1 12h4l1-12"/></svg></button></div>
+  <div class="camhint" id="camInfo"></div></div>
  <div class="cambody">
   <div class="seg" id="camSeg"><button data-m="IN">IN · Réception</button><button data-m="OUT">OUT · Sortie</button></div>
+  <div id="zoomBox" hidden style="display:flex;align-items:center;gap:10px;font-size:13px;color:#9198a3">Zoom<input type="range" id="camZoom" min="1" max="4" step="0.1" value="1" style="flex:1;accent-color:var(--acc)"></div>
   <div class="camlog" id="camLog"><div style="color:#9198a3">Vise le code-barres de la bobine. Chaque lecture compte <b id="camN" style="margin-left:4px">1</b> bobine.</div></div>
   <div class="row" style="margin:0"><button class="btn acc" id="camClose" style="flex:1">Terminer</button></div>
  </div>
@@ -417,7 +423,7 @@ const findSpool=code=>{const s=spools.get(idOf(code));if(s)return s;const k=gkey
 
 /* ---------- toast / confirmation ---------- */
 let tT=null,undoFn=null;
-const toast=(txt,undo)=>{$('#toastTxt').textContent=txt;undoFn=undo||null;$('#undoBtn').hidden=!undo;$('#toast').classList.add('show');clearTimeout(tT);tT=setTimeout(()=>$('#toast').classList.remove('show'),undo?6000:3200)};
+const toast=(txt,undo)=>{$('#toastTxt').textContent=txt;undoFn=undo||null;$('#undoBtn').hidden=!undo;$('#toast').classList.add('show');clearTimeout(tT);tT=setTimeout(()=>$('#toast').classList.remove('show'),undo?6000:Math.max(3200,String(txt).length*55))};
 const ask=(t,p,yes='Confirmer')=>new Promise(r=>{$('#askT').textContent=t;$('#askP').textContent=p;$('#askYes').textContent=yes;const d=$('#ask');
  const done=v=>{d.close();r(v)};$('#askYes').onclick=()=>done(true);$('#askNo').onclick=()=>done(false);d.oncancel=()=>r(false);d.showModal()});
 
@@ -664,8 +670,8 @@ let camReader=null,camLast={c:'',t:0},camBusy=false,camCount=0,actx=null;
 const beep=ok=>{try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=ok?1250:330;g.gain.value=.08;o.connect(g);g.connect(actx.destination);o.start();o.stop(actx.currentTime+(ok?.09:.25))}catch(e){}try{navigator.vibrate&&navigator.vibrate(ok?50:[80,60,80])}catch(e){}};
 const camSetMode=m=>{setMode(m);$$('#camSeg button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));$('#camMode').textContent=m;$('#camMode').className='tag '+m};
 const camLog=(html)=>{const l=$('#camLog');if(!camCount)l.innerHTML='';l.insertAdjacentHTML('afterbegin',`<div>${html}</div>`)};
-const stopCam=()=>{try{camReader&&camReader.reset()}catch(e){}camReader=null};
-const onCam=async txt=>{const now=Date.now();if(txt===camLast.c&&now-camLast.t<1200){camLast.t=now;return}if(camBusy)return;camLast={c:txt,t:now};camBusy=true;
+const stopCam=()=>stopCamNew();
+const onCam=async txt=>{const now=Date.now();if(txt===camLast.c&&now-camLast.t<2000){camLast.t=now;return}if(camBusy)return;camLast={c:txt,t:now};camBusy=true;
  try{const r=await handleScan(txt,null,true);camLast={c:txt,t:Date.now()};
   if(r.cancel){camLog(`<span style="color:#9198a3">${esc(txt)} : annulé</span>`);return}
   if(r.serial){beep(false);camLog(`<span style="color:#ffc46b">${esc(txt)} : ${/^WL/i.test(txt)?'n° de série du carton, scanne l\'EAN (13 chiffres)':esc(r.serial)}</span>`);return}
@@ -675,12 +681,49 @@ const onCam=async txt=>{const now=Date.now();if(txt===camLast.c&&now-camLast.t<1
   else{beep(false);camLog(`<span style="color:#ff8c8c">${esc(r.s?label(r.s):txt)} : refusé (stock)</span>`)}
   $('#camCount').textContent=camCount+' scan'+(camCount>1?'s':'')}
  finally{camBusy=false}};
+let camRot=false,camStream=null,camTrack=null,camTimer=null,camDevs=[],camDev=null,camFrame=0,camDet=null,camZx=null,camTorchOn=false;
+try{camDev=localStorage.getItem('sf3d.camDev')||null}catch(e){}
+const camErr=e=>{const nme=e&&e.name||'';return nme==='NotAllowedError'||nme==='SecurityError'?'Accès caméra refusé : Réglages Android → Applis → Stock Filament 3D (ou le navigateur) → Autorisations → Appareil photo → Autoriser.':
+ nme==='NotReadableError'||nme==='TrackStartError'?'La caméra est déjà utilisée par une autre appli : ferme-la et réessaie.':nme==='NotFoundError'||nme==='OverconstrainedError'?'Aucune caméra arrière trouvée sur cet appareil.':
+ !window.isSecureContext&&location.protocol!=='file:'?'Caméra bloquée : la page doit être ouverte en https ou via l\'APK.':'Caméra indisponible ici : utilise « Photo » ou l\'APK.'};
+const camStopStream=()=>{clearTimeout(camTimer);camTimer=null;if(camStream)camStream.getTracks().forEach(t=>t.stop());camStream=null;camTrack=null};
+const stopCamNew=()=>{camStopStream();$('#video').srcObject=null};
+const camOpen=async()=>{camStopStream();
+ const base={width:{ideal:1920},height:{ideal:1080}};
+ const tries=camDev?[{video:{...base,deviceId:{exact:camDev}}},{video:{...base,facingMode:{ideal:'environment'}}}]:[{video:{...base,facingMode:{ideal:'environment'}}},{video:{facingMode:'environment'}},{video:true}];
+ let err=null;for(const c of tries){try{camStream=await navigator.mediaDevices.getUserMedia({...c,audio:false});break}catch(e){err=e;if(e.name==='NotAllowedError')break}}
+ if(!camStream)throw err;
+ camTrack=camStream.getVideoTracks()[0];const v=$('#video');v.srcObject=camStream;v.setAttribute('playsinline','');v.muted=true;await v.play().catch(()=>{});
+ try{await camTrack.applyConstraints({advanced:[{focusMode:'continuous'}]})}catch(e){}
+ const cap=camTrack.getCapabilities?camTrack.getCapabilities():{};
+ $('#camTorch').hidden=!cap.torch;camTorchOn=false;$('#camTorch').classList.remove('on');
+ if(cap.zoom&&cap.zoom.max>cap.zoom.min){const z=$('#camZoom');z.min=cap.zoom.min;z.max=Math.min(cap.zoom.max,8);z.step=cap.zoom.step||0.1;z.value=Math.min(Math.max(cap.zoom.min,1.5),z.max);$('#zoomBox').hidden=false;camTrack.applyConstraints({advanced:[{zoom:+z.value}]}).catch(()=>{})}else $('#zoomBox').hidden=true;
+ try{camDevs=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='videoinput')}catch(e){camDevs=[]}
+ $('#camSwitch').hidden=camDevs.length<2;
+ const st=camTrack.getSettings?camTrack.getSettings():{},lbl=camTrack.label||'';
+ $('#camInfo').textContent=`${lbl?lbl.replace(/\(.*?\)/g,'').trim().slice(0,40)+' · ':''}${st.width||'?'}×${st.height||'?'}${camDet?' · lecteur natif':' · lecteur ZXing'}`;
+ camLoop()};
+const camCanvas=document.createElement('canvas'),camCtx=camCanvas.getContext('2d',{willReadFrequently:true});
+const zxDecode=(src,rot)=>{const w=src.width,h=src.height;let cv=src;if(rot){cv=document.createElement('canvas');cv.width=h;cv.height=w;const c=cv.getContext('2d');c.translate(h/2,w/2);c.rotate(Math.PI/2);c.drawImage(src,-w/2,-h/2)}
+ try{const bmp=new Z.BinaryBitmap(new Z.HybridBinarizer(new Z.HTMLCanvasElementLuminanceSource(cv)));return camZx.decodeWithState(bmp).getText()}catch(e){return null}};
+const camLoop=async()=>{const v=$('#video');if(!camStream)return;
+ try{if(v.readyState>=2&&v.videoWidth&&!camBusy&&!$('#mv').open){camFrame++;let txt=null;
+  if(camDet){const r=await camDet.detect(v);if(r&&r[0])txt=r[0].rawValue}
+  else{const vw=v.videoWidth,vh=v.videoHeight,full=camFrame%3===0;const sx=full?0:vw*.08,sy=full?0:vh*.2,sw=full?vw:vw*.84,sh=full?vh:vh*.6,k=Math.min(1,1280/sw);
+   camCanvas.width=Math.round(sw*k);camCanvas.height=Math.round(sh*k);camCtx.drawImage(v,sx,sy,sw,sh,0,0,camCanvas.width,camCanvas.height);
+   const o=camRot;txt=zxDecode(camCanvas,o);if(!txt&&camFrame%2===0){txt=zxDecode(camCanvas,!o);if(txt)camRot=!o}}
+  if(txt)onCam(txt)}}catch(e){}
+ camTimer=setTimeout(camLoop,camDet?120:180)};
+$('#camSwitch').onclick=async()=>{if(camDevs.length<2)return;const cur=camTrack&&camTrack.getSettings?camTrack.getSettings().deviceId:camDev;const i=camDevs.findIndex(d=>d.deviceId===cur);camDev=camDevs[(i+1)%camDevs.length].deviceId;try{localStorage.setItem('sf3d.camDev',camDev)}catch(e){}
+ try{await camOpen()}catch(e){camDev=null;toast(camErr(e))}};
+$('#camTorch').onclick=()=>{if(!camTrack)return;camTorchOn=!camTorchOn;camTrack.applyConstraints({advanced:[{torch:camTorchOn}]}).catch(()=>{});$('#camTorch').classList.toggle('on',camTorchOn)};
+$('#camZoom').addEventListener('input',e=>{if(camTrack)camTrack.applyConstraints({advanced:[{zoom:+e.target.value}]}).catch(()=>{})});
 $('#camBtn').onclick=async()=>{
- if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){toast('Caméra indisponible ici : utilise « Photo ».');return}
- camCount=0;$('#camCount').textContent='0 scan';$('#camLog').innerHTML=`<div style="color:#9198a3">Vise le code-barres, puis retire la bobine avant la suivante. Chaque lecture compte ${n} bobine${n>1?'s':''}.</div>`;camSetMode(mode);$('#cam').showModal();
- try{camReader=new Z.BrowserMultiFormatReader(hints(),250);
-  await camReader.decodeFromConstraints({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}},$('#video'),(res)=>{if(res)onCam(res.getText())})}
- catch(e){console.error(e);stopCam();$('#cam').close();toast(e&&e.name==='NotAllowedError'?'Accès caméra refusé : autorise-le dans les réglages.':'Caméra indisponible ici : utilise « Photo ».')}};
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){toast(camErr({}));return}
+ if(camDet===null||camDet===undefined){camDet=null;try{if('BarcodeDetector'in window){const f=await BarcodeDetector.getSupportedFormats();const want=['ean_13','ean_8','upc_a','upc_e','code_128','code_39','itf','qr_code','data_matrix'].filter(x=>f.includes(x));if(want.length)camDet=new BarcodeDetector({formats:want})}}catch(e){camDet=null}}
+ camZx=new Z.MultiFormatReader();camZx.setHints(hints());
+ camCount=0;$('#camCount').textContent='0 scan';$('#camLog').innerHTML=`<div style="color:#9198a3">Vise le code-barres à 10–20 cm, bien à plat, puis retire la bobine avant la suivante. Si ça ne lit pas : zoom, lampe, ou change de caméra (bouton en bas à droite).</div>`;camSetMode(mode);$('#cam').showModal();
+ try{await camOpen()}catch(e){console.error(e);stopCamNew();$('#cam').close();toast(camErr(e))}};
 $('#camClose').onclick=()=>{stopCam();$('#cam').close();if(camCount)toast(`${camCount} bobine${camCount>1?'s':''} scannée${camCount>1?'s':''}`);if(pending.size)setTimeout(openIdent,300)};
 $('#cam').addEventListener('cancel',()=>stopCam());
 $('#camSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(b)camSetMode(b.dataset.m)});
