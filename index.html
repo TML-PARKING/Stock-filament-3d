@@ -52,6 +52,7 @@ h2{font-size:20px;margin:0 0 14px;font-weight:800}
 .scan input{flex:1;height:60px;border-radius:16px;border:2px solid var(--line);background:var(--soft);padding:0 18px;font-size:18px;font-weight:700;letter-spacing:.02em}
 .scan input:focus{border-color:var(--acc);outline:0}
 .cst{font-size:13px;font-weight:700;margin:10px 0 0}.cst.good{color:var(--ok,#0e8a6a)}.cst.bad{color:var(--dng,#d93025)}
+.chk2 .ckrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--line,#2a2e35)}.chk2 .ckrow small{display:block;opacity:.7;font-size:13px;margin-top:2px}.ckbtn{display:flex;gap:8px;flex-wrap:wrap}.ckbtn .btn{height:40px;font-size:14px}
 .chk{display:flex;align-items:center;gap:10px;font-size:14px;margin:12px 0 4px}.chk input{width:20px;height:20px;accent-color:var(--acc)}
 .btn{height:48px;padding:0 18px;border-radius:14px;font-weight:700;background:var(--soft);display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;text-decoration:none}
 .btn.pri{background:var(--ink);color:var(--bg)}
@@ -256,6 +257,7 @@ input[type=color]{padding:4px}
     <div class="seg hf" id="dp" style="grid-template-columns:repeat(4,1fr);width:min(380px,100%)"><button data-p="30">30 j</button><button data-p="90" class="on">90 j</button><button data-p="365">12 mois</button><button data-p="0">Tout</button></div></div>
    <div class="kpis" id="dk1"></div>
    <div class="kpis" id="dk2"></div>
+   <div id="dCheck"></div>
    <div class="card" style="margin-bottom:18px"><h2 id="chT">Achats, ventes et marge</h2>
     <div class="legend"><span><i style="background:var(--c1)"></i>Achats</span><span><i style="background:var(--c2)"></i>Ventes</span><span><i style="background:var(--c3)"></i>Marge</span></div>
     <div class="fig" id="fig"><svg id="chart" aria-label="Achats, ventes et marge par période"></svg><div class="tip" id="tip"></div></div></div>
@@ -612,7 +614,26 @@ const renderAll=()=>{renderStock();if(!$('#v-dashboard').hidden)renderDash();$('
 let dPer=90;
 const MOIS=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
 const dk=(lab,val,sub,cls='')=>`<div class="card dk"><small>${lab}</small><b class="${cls}">${val}</b>${sub?`<span>${sub}</span>`:''}</div>`;
+const diag=()=>{const H=new Map(),orph=[];for(const m of moves){if(!spools.has(m.sid)){orph.push(m);continue}H.set(m.sid,(H.get(m.sid)||0)+(m.type==='IN'?m.n:-m.n))}
+ const rows=[];for(const s of spools.values()){const h=H.get(s.id)||0,q=s.qty||0;if(h!==q)rows.push({s,h,q})}return{rows,orph}};
+const renderCheck=()=>{const el=$('#dCheck');if(!el)return;const{rows,orph}=diag();
+ if(!rows.length&&!orph.length){el.innerHTML='';return}
+ const oIn=orph.filter(m=>m.type==='IN').reduce((t,m)=>t+m.n,0);
+ el.innerHTML=`<div class="card chk2"><h2>Contrôle du stock</h2><p>Le stock de ces références ne correspond pas à leur historique d'entrées et sorties. C'est ce qui crée un écart entre Achats et Valeur du stock.</p>`+
+ rows.map(({s,h,q})=>`<div class="ckrow"><div><b>${esc(label(s))}</b><small>${esc(s.brand||'')} · en stock ${q} · historique ${h} (${h>q?(h-q)+' entrée(s) en trop':(q-h)+' entrée(s) non enregistrée(s)'})</small></div><div class="ckbtn">`+
+  (h>q?`<button class="btn" data-ck="trim" data-id="${esc(s.id)}">Retirer ${h-q} IN en trop</button>`:`<button class="btn" data-ck="addin" data-id="${esc(s.id)}">Enregistrer l'entrée de ${q-h}</button>`)+
+  `<button class="btn" data-ck="setq" data-id="${esc(s.id)}">Stock = ${h}</button></div></div>`).join('')+
+ (orph.length?`<div class="ckrow"><div><b>Références supprimées</b><small>${orph.length} mouvement(s) d'anciennes références${oIn?`, dont ${oIn} bobine(s) en entrée`:''}</small></div><div class="ckbtn"><button class="btn" data-ck="orph">Supprimer ces mouvements</button></div></div>`:'')+'</div>'};
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-ck]');if(!b)return;const k=b.dataset.ck,s=spools.get(b.dataset.id);
+ try{if(k==='orph'){const{orph}=diag();if(!await ask('Supprimer ces mouvements ?',`${orph.length} mouvement(s) de références qui n'existent plus.`,'Supprimer'))return;for(const m of orph)await store.delMove(m.id);toast('Historique nettoyé')}
+ else if(s){const{rows}=diag(),r=rows.find(x=>x.s.id===s.id);if(!r)return;
+  if(k==='setq'){await store.setSpool({...s,qty:r.h});toast(`${label(s)} : stock remis à ${r.h}`)}
+  else if(k==='trim'){let left=r.h-r.q;const ins=moves.filter(m=>m.sid===s.id&&m.type==='IN').sort((a,b)=>b.at-a.at);
+   for(const m of ins){if(left<=0)break;if(m.n<=left){left-=m.n;await store.delMove(m.id)}else{const n=m.n-left,kg=n*kgOf(s);await store.putMoves([{...m,n,kg,amount:m.price>0?kg*m.price:m.amount}]);left=0}}toast('IN en trop retiré')}
+  else if(k==='addin'){const n=r.q-r.h,kg=n*kgOf(s),pr=s.cost>0?s.cost:(s.buy||0);await store.addMove({code:s.code,sid:s.id,type:'IN',n,at:Date.now(),label:label(s),brand:s.brand||'',hex:s.hex||'#999',mat:s.material||'',kg,price:pr,amount:kg*pr});toast('Entrée enregistrée')}}}catch(err){fail(err)}
+ renderCheck()});
 const renderDash=()=>{
+ renderCheck();
  const now=Date.now(),from=dPer?now-dPer*864e5:0,L=moves.filter(m=>m.at>=from);
  const ins=L.filter(m=>m.type==='IN'),sales=L.filter(m=>m.type==='OUT'&&m.sale),uses=L.filter(m=>m.type==='OUT'&&m.use);
  const sum=(a,k)=>a.reduce((t,m)=>t+(m[k]||0),0);
