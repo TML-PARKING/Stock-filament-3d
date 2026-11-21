@@ -52,6 +52,7 @@ h2{font-size:20px;margin:0 0 14px;font-weight:800}
 .scan input{flex:1;height:60px;border-radius:16px;border:2px solid var(--line);background:var(--soft);padding:0 18px;font-size:18px;font-weight:700;letter-spacing:.02em}
 .scan input:focus{border-color:var(--acc);outline:0}
 .cst{font-size:13px;font-weight:700;margin:10px 0 0}.cst.good{color:var(--ok,#0e8a6a)}.cst.bad{color:var(--dng,#d93025)}
+.chk{display:flex;align-items:center;gap:10px;font-size:14px;margin:12px 0 4px}.chk input{width:20px;height:20px;accent-color:var(--acc)}
 .btn{height:48px;padding:0 18px;border-radius:14px;font-weight:700;background:var(--soft);display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;text-decoration:none}
 .btn.pri{background:var(--ink);color:var(--bg)}
 .btn.acc{background:var(--acc);color:#fff}
@@ -289,6 +290,11 @@ input[type=color]{padding:4px}
    <div class="set">
     <div class="card"><h2>Prix par défaut</h2><p>Proposés quand une bobine n'a pas encore de prix. Chaque référence retient ensuite son dernier prix d'achat et de vente.</p>
      <div class="fg"><label>Achat (€/kg)<input id="defBuy" inputmode="decimal" placeholder="ex. 15"></label><label>Revente (€/kg)<input id="defSell" inputmode="decimal" placeholder="ex. 25"></label></div></div>
+    <div class="card"><h2>Seuil mini en lot</h2><p>Change le seuil d'alerte de toutes les références d'un coup, ou d'une seule matière ou marque. Tu peux toujours ajuster une bobine à part dans sa fiche.</p>
+     <div class="fg"><label>Nouveau seuil (bobines)<input id="bulkMin" type="number" inputmode="numeric" min="0" placeholder="ex. 2"></label>
+      <label>Appliquer à<select id="bulkScope"></select></label></div>
+     <label class="chk"><input type="checkbox" id="bulkDef" checked> Aussi pour les nouvelles références</label>
+     <div class="row"><button class="btn pri" id="bulkGo">Appliquer</button></div></div>
     <div class="card" id="cloudCard"><h2>Synchro automatique</h2><p>Ton stock et ton historique sont enregistrés dans ta base Cloudflare et suivent sur tous tes appareils, en temps réel. Hors ligne, tout est gardé et part au retour du réseau.</p>
      <p class="cst" id="cloudSt">—</p></div>
     <div class="card"><h2>Sauvegarde</h2><p>Fichier JSON avec tout le stock et l'historique. À garder en lieu sûr, ou pour passer d'un appareil à l'autre.</p>
@@ -423,11 +429,26 @@ const LS='sf3d.data.v1';
 const saveLocal=()=>{if(db)return;try{localStorage.setItem(LS,JSON.stringify({spools:[...spools.values()],moves:moves.slice(0,20000)}))}catch(e){toast('Stockage plein : exporte puis vide l\'historique.')}};
 const loadLocal=()=>{try{const d=JSON.parse(localStorage.getItem(LS)||'null');if(d){spools.clear();(d.spools||[]).forEach(s=>spools.set(s.id,s));moves=d.moves||[]}}catch(e){}};
 const store={
- async setSpool(s){s.updatedAt=Date.now();spools.set(s.id,s);renderAll();if(db)await db.doc('spools/'+s.id).set(s);else{saveLocal();cloud.q('s',s.id,s)}},
+ async setSpool(s){s.updatedAt=Date.now();spools.set(s.id,s);renderAll();if(typeof fixMoves!=='undefined')fixMoves();if(db)await db.doc('spools/'+s.id).set(s);else{saveLocal();cloud.q('s',s.id,s)}},
  async delSpool(id){spools.delete(id);renderAll();if(db)await db.doc('spools/'+id).delete();else{saveLocal();cloud.q('s',id,null)}},
  async addMove(m){const id=db?db.collection('moves').doc().id:'m'+Date.now()+Math.random().toString(36).slice(2,6);m.id=id;m.updatedAt=Date.now();moves=[m,...moves.filter(x=>x.id!==id)];renderAll();if(db)await db.doc('moves/'+id).set(m);else{saveLocal();cloud.q('m',id,m)}return id},
+ async putMoves(list){const ids=new Set(list.map(m=>m.id));moves=moves.map(m=>ids.has(m.id)?list.find(x=>x.id===m.id):m);renderAll();for(const m of list){m.updatedAt=Date.now();if(db)await db.doc('moves/'+m.id).set(m);else cloud.q('m',m.id,m)}if(!db)saveLocal()},
  async delMove(id){moves=moves.filter(m=>m.id!==id);renderAll();if(db)await db.doc('moves/'+id).delete();else{saveLocal();cloud.q('m',id,null)}}
 };
+/* Recalcule kg / montants des mouvements selon le poids actuel de la bobine (corrige un poids modifié après coup) */
+let fixT=null;const fixMoves=()=>{clearTimeout(fixT);fixT=setTimeout(async()=>{const r2=x=>Math.round(x*1e4)/1e4,list=[];
+ for(const m of moves){const sp=spools.get(m.sid);if(!sp||!m.n)continue;const kg=r2(m.n*kgOf(sp)),pk=sp.cost>0?r2(sp.cost):(sp.buy>0?sp.buy:0);
+  const n={...m,kg};
+  if(m.type==='IN'){if(!(m.price>0)&&pk>0){n.price=pk;n.priced=1}if(n.price>0)n.amount=r2(kg*n.price)}
+  else{if(!(m.costKg>0)&&pk>0)n.costKg=pk;n.cost=r2(kg*(n.costKg||0));if(m.sale){n.amount=r2(kg*(m.price||0));n.margin=r2(n.amount-n.cost)}}
+  if(n.kg===m.kg&&n.price===m.price&&n.amount===m.amount&&n.costKg===m.costKg&&n.cost===m.cost&&n.margin===m.margin)continue;list.push(n)}
+ if(list.length){try{await store.putMoves(list)}catch(e){}}},600)};
+let defMin=2;try{const v=localStorage.getItem('sf3d.defMin');if(v!==null&&v!=='')defMin=+v}catch(e){}
+const fillBulk=()=>{const sel=$('#bulkScope');if(!sel)return;const cur=sel.value,all=[...spools.values()],cnt=f=>all.filter(f).length;
+ const mats=[...new Set(all.map(x=>x.material).filter(Boolean))].sort(),brs=[...new Set(all.map(x=>x.brand).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+ sel.innerHTML=`<option value="*">Tout le stock (${all.length})</option>`+(mats.length?'<optgroup label="Matière">'+mats.map(m=>`<option value="m:${esc(m)}">${esc(m)} (${cnt(x=>x.material===m)})</option>`).join('')+'</optgroup>':'')+
+  (brs.length?'<optgroup label="Marque">'+brs.map(b=>`<option value="b:${esc(b)}">${esc(b)} (${cnt(x=>x.brand===b)})</option>`).join('')+'</optgroup>':'');
+ if([...sel.options].some(o=>o.value===cur))sel.value=cur;$('#bulkMin').placeholder='actuel par défaut : '+defMin};
 /* ---------- synchro Cloudflare (D1) ---------- */
 const cloud=(()=>{const CK='sf3d.cloud',OK='sf3d.outbox',SK='sf3d.cloudSeq';
  let cfg=null,out=new Map(),seq=0,busy=false,timer=null,state='off',lastAt=0,err='';
@@ -450,7 +471,7 @@ const cloud=(()=>{const CK='sf3d.cloud',OK='sf3d.outbox',SK='sf3d.cloudSeq';
    const cur=local(it.kind,it.id),cu=cur?(cur.updatedAt||cur.at||0):0;
    if(it.del){if(cur&&it.u>=cu){if(it.kind==='s')spools.delete(it.id);else moves=moves.filter(m=>m.id!==it.id);ch++}continue}
    if(!cur||it.u>cu){const d={...it.data,id:it.id};if(it.kind==='s')spools.set(it.id,d);else{moves=moves.filter(m=>m.id!==it.id);moves.push(d)}ch++}}
-  if(ch){moves.sort((a,b)=>b.at-a.at);saveLocal();renderAll()}return ch};
+  if(ch){moves.sort((a,b)=>b.at-a.at);saveLocal();renderAll();fixMoves()}return ch};
  const sync=async(full)=>{if(!on()||busy)return;busy=true;if(full)paint();
   try{const all=[...out.values()];for(let i=0;i<all.length;i+=200){const part=all.slice(i,i+200);await api('/sync',{method:'POST',body:JSON.stringify({items:part})});
      for(const it of part){const k=it.kind+':'+it.id;if(out.get(k)===it)out.delete(k)}persist()}
@@ -500,7 +521,7 @@ const applyMove=async(s,type,q,opt={})=>{
  if(!opt.keepN)setN(1);refocus();return ns;
 };
 const newSpool=p=>({id:p.code?idOf(p.code):'ref'+Date.now().toString(36),code:p.code||'',brand:p.brand||'',material:p.material||'PLA',line:p.line||'',color:p.color||'',hex:p.hex||'#999999',hex2:p.hex2||'',
- diameter:p.diameter||'1.75',weight:+p.weight||1000,min:p.min??2,loc:p.loc||'',qty:0,temps:p.temps||null,flags:p.flags||[],src:p.src||'',cost:0,buy:0,sell:0,updatedAt:Date.now()});
+ diameter:p.diameter||'1.75',weight:+p.weight||1000,min:p.min??defMin,loc:p.loc||'',qty:0,temps:p.temps||null,flags:p.flags||[],src:p.src||'',cost:0,buy:0,sell:0,updatedAt:Date.now()});
 
 /* ---------- saisie par article : quantité + prix ---------- */
 let mvCtx=null;
@@ -600,7 +621,7 @@ const renderDash=()=>{
  const pct=saleE?Math.round(mg/saleE*100):0,per=dPer?({30:'30 jours',90:'90 jours',365:'12 mois'})[dPer]:'depuis le début';
  $('#dTitle').textContent=sales.length?`Marge ${mg>=0?'de':'négative de'} ${eur0(Math.abs(mg))} sur ${per}`:(ins.length?`${eur0(buyE)} d'achats sur ${per}`:'Bilan et rentabilité');
  $('#dSub').textContent=sales.length?`${eur0(saleE)} de ventes, marge ${pct} %. Coût calculé au prix moyen pondéré de chaque bobine.`:'Saisis un prix au kg à chaque IN et OUT : le bilan se remplit tout seul.';
- $('#dk1').innerHTML=dk('Valeur du stock',eur0(stockE),`${kgf(stockKg)}${unp?` · ${unp} réf. sans prix`:''}`)+dk('Achats',eur0(buyE),`${kgf(buyKg)} · ${ins.reduce((t,m)=>t+m.n,0)} bobines`)+dk('Ventes',eur0(saleE),`${kgf(saleKg)} · ${sales.reduce((t,m)=>t+m.n,0)} bobines`)+dk('Marge brute',(mg>=0?'+':'')+eur0(mg),saleE?`${pct} % des ventes`:'aucune vente',mg>=0?'pos':'neg');
+ $('#dk1').innerHTML=dk('Valeur du stock',eur0(stockE),`${kgf(stockKg)}${unp?` · ${unp} réf. sans prix`:''}`)+dk('Achats',eur0(buyE),(()=>{const nAll=ins.reduce((t,m)=>t+m.n,0),np=ins.filter(m=>!(m.price>0)).reduce((t,m)=>t+m.n,0);return `${nAll} bobines · ${kgf(buyKg)} payés`+(np?` · <b class="lowtxt">${np} sans prix</b>`:'')})())+dk('Ventes',eur0(saleE),`${kgf(saleKg)} · ${sales.reduce((t,m)=>t+m.n,0)} bobines`)+dk('Marge brute',(mg>=0?'+':'')+eur0(mg),saleE?`${pct} % des ventes`:'aucune vente',mg>=0?'pos':'neg');
  $('#dk2').innerHTML=dk('Prix moyen d\'achat',buyKg?eur(buyE/buyKg)+'/kg':'—','sur la période')+dk('Prix moyen de vente',saleKg?eur(saleE/saleKg)+'/kg':'—','sur la période')+dk('Marge moyenne',saleKg?eur(mg/saleKg)+'/kg':'—','par kg vendu')+dk('Usage perso',eur0(useE),`${kgf(sum(uses,'kg'))} consommés`);
  /* séries par période */
  const B=[];const d0=new Date();
@@ -660,7 +681,7 @@ $('#cat').addEventListener('click',e=>{const b=e.target.closest('[data-row]');if
 
 /* ---------- fiche bobine ---------- */
 let editing=null,formExtra={};const F=$('#spForm');
-const openForm=(s,pre,fromDb)=>{editing=s;const d=s||{material:'PLA',diameter:'1.75',weight:1000,min:2,hex:'#d32f2f',qty:0,...pre};
+const openForm=(s,pre,fromDb)=>{editing=s;const d=s||{material:'PLA',diameter:'1.75',weight:1000,min:defMin,hex:'#d32f2f',qty:0,...pre};
  formExtra={hex2:d.hex2||'',temps:d.temps||null,flags:d.flags||[],src:d.src||''};
  $('#dlgT').textContent=s?'Modifier la bobine':fromDb?'Ajouter depuis la base':'Bobine inconnue : nouvelle fiche';
  for(const k of ['code','brand','material','line','color','hex','diameter','weight','min','loc','qty']){const el=F.elements[k];if(!el)continue;el.value=d[k]??''}
@@ -834,6 +855,14 @@ $('#impJson').addEventListener('change',async e=>{const f=e.target.files[0];e.ta
 $('#wipe').onclick=async()=>{if(!await ask('Tout effacer ?','Toutes les bobines et tout l\'historique seront supprimés.','Tout effacer'))return;
  const S=[...spools.keys()],M=moves.map(m=>m.id);spools.clear();moves=[];lastResult=null;saveLocal();renderAll();$('#result').innerHTML='<div class="empty">Stock vidé.</div>';
  if(db){for(const id of S)await db.doc('spools/'+id).delete().catch(()=>{});for(const id of M)await db.doc('moves/'+id).delete().catch(()=>{})}else{S.forEach(id=>cloud.q('s',id,null));M.forEach(id=>cloud.q('m',id,null))}toast('Stock vidé')};
+$('#bulkGo').onclick=async()=>{const v=$('#bulkMin').value.trim();if(v===''||!(+v>=0)){toast('Indique un seuil (0 ou plus)');return}
+ const n=Math.round(+v),sc=$('#bulkScope').value,list=[...spools.values()].filter(x=>sc==='*'||(sc.startsWith('m:')?x.material===sc.slice(2):x.brand===sc.slice(2)));
+ const ch=list.filter(x=>(x.min||0)!==n),lbl=$('#bulkScope').selectedOptions[0]?.textContent.replace(/\s*\(\d+\)$/,'')||'';
+ if(!ch.length&&!$('#bulkDef').checked){toast('Rien à changer : déjà à '+n);return}
+ if(ch.length&&!await ask('Seuil mini à '+n+' ?',`${ch.length} référence(s) passeront à ${n} (${lbl}).`,'Appliquer'))return;
+ if($('#bulkDef').checked){defMin=n;try{localStorage.setItem('sf3d.defMin',n)}catch(e){}}
+ try{for(const x of ch)await store.setSpool({...x,min:n})}catch(e){fail(e)}
+ $('#bulkMin').value='';fillBulk();toast(ch.length?`Seuil mini mis à ${n} sur ${ch.length} référence(s)`:'Seuil par défaut enregistré : '+n)};
 
 /* ---------- contrôles ---------- */
 const fine=matchMedia('(pointer:fine)').matches;
@@ -851,7 +880,7 @@ $('#spools').addEventListener('click',e=>{const c=e.target.closest('.sp');if(!c)
 $('#spools').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.classList.contains('sp')){const s=spools.get(e.target.dataset.id);if(s)openForm(s)}});
 $('#hf').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;histF=b.dataset.h;$$('#hf button').forEach(x=>x.classList.toggle('on',x===b));renderAll()});
 const VIEWS=['scan','stock','dashboard','base','historique','reglages'];let baseInit=false;
-const route=()=>{const v=VIEWS.includes(location.hash.slice(1))?location.hash.slice(1):'scan';
+const route=()=>{const v=VIEWS.includes(location.hash.slice(1))?location.hash.slice(1):'scan';if(v==='reglages')fillBulk();
  for(const x of VIEWS)$('#v-'+x).hidden=x!==v;$$('.nav').forEach(a=>a.dataset.v===v?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current'));
  if(v==='base'&&!baseInit){baseInit=true;renderBase()}if(v==='dashboard')renderDash();if(v==='scan')refocus();scrollTo(0,0)};
 addEventListener('hashchange',route);
@@ -873,7 +902,7 @@ route();
 
 (async()=>{
  try{db=window.claude?await claude.use('db'):null}catch(e){db=null}
- if(!db){loadLocal();renderAll();$('#storeInfo').textContent=(cloud.cfg||cloud.HOSTED)?'Données sur cet appareil, synchronisées avec ta base Cloudflare.':'Données enregistrées sur cet appareil, hors ligne. Connecte Cloudflare pour passer d\'un appareil à l\'autre.';cloud.auto();cloud.start();return}
+ if(!db){loadLocal();renderAll();$('#storeInfo').textContent=(cloud.cfg||cloud.HOSTED)?'Données sur cet appareil, synchronisées avec ta base Cloudflare.':'Données enregistrées sur cet appareil (fichier local). Ouvre l\'app en ligne pour la synchro entre appareils.';cloud.auto();cloud.start();fixMoves();return}
  $('#cloudCard').hidden=true;
  $('#storeInfo').textContent='Données synchronisées dans ton compte Claude.';renderAll();
  const to=setTimeout(()=>{$('#banner').innerHTML='<div class="banner">Les données ne sont pas encore joignables : affichage possiblement incomplet.</div>'},10000);
