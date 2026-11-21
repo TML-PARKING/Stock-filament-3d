@@ -288,7 +288,7 @@ input[type=color]{padding:4px}
   </section>
 
   <section class="view" id="v-reglages" hidden>
-   <div class="top"><div><h1>Réglages et sauvegarde</h1><p class="sub" id="storeInfo">—</p></div></div>
+   <div class="top"><div><h1>Réglages et sauvegarde</h1><p class="sub" id="storeInfo">—</p><p style="font-size:12px;opacity:.6;margin-top:4px">Version 2.7 · 21/11/2026</p></div></div>
    <div class="set">
     <div class="card"><h2>Prix par défaut</h2><p>Proposés quand une bobine n'a pas encore de prix. Chaque référence retient ensuite son dernier prix d'achat et de vente.</p>
      <div class="fg"><label>Achat (€/kg)<input id="defBuy" inputmode="decimal" placeholder="ex. 15"></label><label>Revente (€/kg)<input id="defSell" inputmode="decimal" placeholder="ex. 25"></label></div></div>
@@ -493,7 +493,8 @@ const cloud=(()=>{const CK='sf3d.cloud',OK='sf3d.outbox',SK='sf3d.cloudSeq';
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync()});addEventListener('online',()=>sync())};
  return{q,sync,connect,disconnect,start,auto,paint,get cfg(){return cfg},on,HOSTED}})();
 window.__sf={get spools(){return spools},get moves(){return moves},store,cloud};
-if('serviceWorker'in navigator&&cloud.HOSTED)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+if('serviceWorker'in navigator&&cloud.HOSTED){addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{}));
+ let swr=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(swr)return;swr=true;location.reload()})}
 const fail=e=>{console.error(e);toast(e&&e.code==='quota_exceeded'?'Base pleine : supprime d\'anciennes références.':'Échec de sauvegarde, réessaie.')};
 const findSpool=code=>{const s=spools.get(idOf(code));if(s)return s;const k=gkey(code);if(!k)return null;for(const x of spools.values())if(gkey(x.code)===k)return x;return null};
 
@@ -614,6 +615,9 @@ const renderAll=()=>{renderStock();if(!$('#v-dashboard').hidden)renderDash();$('
 let dPer=90;
 const MOIS=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
 const dk=(lab,val,sub,cls='')=>`<div class="card dk"><small>${lab}</small><b class="${cls}">${val}</b>${sub?`<span>${sub}</span>`:''}</div>`;
+const trimIns=async(s,k)=>{let left=k;const ins=moves.filter(m=>m.sid===s.id&&m.type==='IN').sort((a,b)=>b.at-a.at);
+ for(const m of ins){if(left<=0)break;if(m.n<=left){left-=m.n;await store.delMove(m.id)}else{const n=m.n-left,kg=n*kgOf(s);await store.putMoves([{...m,n,kg,amount:m.price>0?kg*m.price:m.amount}]);left=0}}};
+const addIn=async(s,n)=>{const kg=n*kgOf(s),pr=s.cost>0?s.cost:(s.buy||0);await store.addMove({code:s.code,sid:s.id,type:'IN',n,at:Date.now(),label:label(s),brand:s.brand||'',hex:s.hex||'#999',mat:s.material||'',kg,price:pr,amount:kg*pr,adj:1})};
 const diag=()=>{const H=new Map(),orph=[];for(const m of moves){if(!spools.has(m.sid)){orph.push(m);continue}H.set(m.sid,(H.get(m.sid)||0)+(m.type==='IN'?m.n:-m.n))}
  const rows=[];for(const s of spools.values()){const h=H.get(s.id)||0,q=s.qty||0;if(h!==q)rows.push({s,h,q})}return{rows,orph}};
 const renderCheck=()=>{const el=$('#dCheck');if(!el)return;const{rows,orph}=diag();
@@ -628,9 +632,8 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-ck]'
  try{if(k==='orph'){const{orph}=diag();if(!await ask('Supprimer ces mouvements ?',`${orph.length} mouvement(s) de références qui n'existent plus.`,'Supprimer'))return;for(const m of orph)await store.delMove(m.id);toast('Historique nettoyé')}
  else if(s){const{rows}=diag(),r=rows.find(x=>x.s.id===s.id);if(!r)return;
   if(k==='setq'){await store.setSpool({...s,qty:r.h});toast(`${label(s)} : stock remis à ${r.h}`)}
-  else if(k==='trim'){let left=r.h-r.q;const ins=moves.filter(m=>m.sid===s.id&&m.type==='IN').sort((a,b)=>b.at-a.at);
-   for(const m of ins){if(left<=0)break;if(m.n<=left){left-=m.n;await store.delMove(m.id)}else{const n=m.n-left,kg=n*kgOf(s);await store.putMoves([{...m,n,kg,amount:m.price>0?kg*m.price:m.amount}]);left=0}}toast('IN en trop retiré')}
-  else if(k==='addin'){const n=r.q-r.h,kg=n*kgOf(s),pr=s.cost>0?s.cost:(s.buy||0);await store.addMove({code:s.code,sid:s.id,type:'IN',n,at:Date.now(),label:label(s),brand:s.brand||'',hex:s.hex||'#999',mat:s.material||'',kg,price:pr,amount:kg*pr});toast('Entrée enregistrée')}}}catch(err){fail(err)}
+  else if(k==='trim'){await trimIns(s,r.h-r.q);toast('IN en trop retiré')}
+  else if(k==='addin'){await addIn(s,r.q-r.h);toast('Entrée enregistrée')}}}catch(err){fail(err)}
  renderCheck()});
 const renderDash=()=>{
  renderCheck();
@@ -730,7 +733,9 @@ F.addEventListener('submit',async e=>{e.preventDefault();const f=F.elements,code
  const s={...base,code,brand:f.brand.value.trim(),material:f.material.value.trim()||'Autre',line:f.line.value.trim(),color:f.color.value.trim(),hex:f.hex.value,diameter:f.diameter.value,weight:+f.weight.value||0,min:+f.min.value||0,loc:f.loc.value.trim(),qty:Math.max(0,+f.qty.value||0),cost:pnum(f.cost.value)||0,sell:pnum(f.sell.value)||0,...formExtra,updatedAt:Date.now()};
  $('#dlg').close();
  try{if(!editing&&mode==='IN'&&s.qty>0){const q0=s.qty,s0={...s,qty:0,cost:0};await store.setSpool(s0);await applyMove(s0,'IN',q0,{created:true,price:s.cost||null})}
-  else{await store.setSpool(s);if(!editing)showResult(s,null);toast(editing?'Fiche mise à jour':'Référence créée')}}catch(err){fail(err)}
+  else{const d=editing?(s.qty||0)-(editing.qty||0):0;await store.setSpool(s);
+   if(d<0)await trimIns(s,-d);else if(d>0)await addIn(s,d);
+   if(!editing)showResult(s,null);toast(editing?(d?`Stock corrigé (${d>0?'+':''}${d}) : historique et bilan ajustés`:'Fiche mise à jour'):'Référence créée')}}catch(err){fail(err)}
  editing=null;refocus()});
 $('#cancelBtn').onclick=()=>{$('#dlg').close();refocus()};
 $('#delBtn').onclick=async()=>{if(!editing)return;const s=editing;$('#dlg').close();try{await store.delSpool(s.id);toast(`${label(s)} supprimée`,async()=>{await store.setSpool(s);toast('Référence restaurée')})}catch(e){fail(e)}editing=null};
