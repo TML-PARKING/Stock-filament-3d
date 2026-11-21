@@ -128,6 +128,9 @@ h2{font-size:20px;margin:0 0 14px;font-weight:800}
  .sdoc .mobm .mtag{font-size:10.5px;padding:2px 7px}.sdoc .mq{background:#eef0f3;border-radius:99px;padding:2px 8px}
  .sdoc .mobt{margin-top:4px!important;font-size:11.5px!important;color:#3d434c!important}
  .sdoc td.pr{width:1%;padding-left:8px}}
+.undobar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.undobar .btn{height:44px}
+td.hact{white-space:nowrap;text-align:right}td.hact .btn{height:34px;padding:0 10px;font-size:13px;margin-left:4px}
+@media(max-width:700px){table.stack td.hact{display:flex;justify-content:flex-end;gap:6px;padding-top:6px}table.stack td.hact:before{display:none}}
 .chk2 .ckrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--line,#2a2e35)}.chk2 .ckrow small{display:block;opacity:.7;font-size:13px;margin-top:2px}.ckbtn{display:flex;gap:8px;flex-wrap:wrap}.ckbtn .btn{height:40px;font-size:14px}
 .chk{display:flex;align-items:center;gap:10px;font-size:14px;margin:12px 0 4px}.chk input{width:20px;height:20px;accent-color:var(--acc)}
 .btn{height:48px;padding:0 18px;border-radius:14px;font-weight:700;background:var(--soft);display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;text-decoration:none}
@@ -360,11 +363,13 @@ input[type=color]{padding:4px}
   <section class="view" id="v-historique" hidden>
    <div class="top"><div><h1>Historique des mouvements</h1><p class="sub">Les 300 derniers IN et OUT.</p></div>
     <div class="seg hf" id="hf"><button data-h="" class="on">Tous</button><button data-h="IN">IN</button><button data-h="OUT">OUT</button></div></div>
-   <div class="card"><div id="histTable"></div></div>
+   <div class="card"><div class="undobar"><button class="btn" id="hUndo">↶ Annuler le dernier</button><button class="btn" id="hRedo">↷ Rétablir</button><span class="meta" id="undoInfo"></span></div>
+    <p class="meta" style="margin:8px 0 12px">Comme dans Excel : ↶ annule le dernier mouvement (stock et bilan reviennent en arrière). Sur une ligne, <b>↶</b> annule ce mouvement seul, <b>Revenir ici</b> annule aussi tout ce qui a été fait après.</p>
+    <div id="histTable"></div></div>
   </section>
 
   <section class="view" id="v-reglages" hidden>
-   <div class="top"><div><h1>Réglages et sauvegarde</h1><p class="sub" id="storeInfo">—</p><p style="font-size:12px;opacity:.6;margin-top:4px">Version 3.2 · 21/11/2026</p></div></div>
+   <div class="top"><div><h1>Réglages et sauvegarde</h1><p class="sub" id="storeInfo">—</p><p style="font-size:12px;opacity:.6;margin-top:4px">Version 3.3 · 21/11/2026</p></div></div>
    <div class="set">
     <div class="card"><h2>Prix par défaut</h2><p>Proposés quand une bobine n'a pas encore de prix. Chaque référence retient ensuite son dernier prix d'achat et de vente.</p>
      <div class="fg"><label>Achat (€/kg)<input id="defBuy" inputmode="decimal" placeholder="ex. 15"></label><label>Revente (€/kg)<input id="defSell" inputmode="decimal" placeholder="ex. 25"></label></div></div>
@@ -521,6 +526,7 @@ const store={
  async setSpool(s){s.updatedAt=Date.now();spools.set(s.id,s);renderAll();if(typeof fixMoves!=='undefined')fixMoves();if(db)await db.doc('spools/'+s.id).set(s);else{saveLocal();cloud.q('s',s.id,s)}},
  async delSpool(id){spools.delete(id);renderAll();if(db)await db.doc('spools/'+id).delete();else{saveLocal();cloud.q('s',id,null)}},
  async addMove(m){const id=db?db.collection('moves').doc().id:'m'+Date.now()+Math.random().toString(36).slice(2,6);m.id=id;m.updatedAt=Date.now();moves=[m,...moves.filter(x=>x.id!==id)];renderAll();if(db)await db.doc('moves/'+id).set(m);else{saveLocal();cloud.q('m',id,m)}return id},
+ async restoreMove(m){m.updatedAt=Date.now();moves=[m,...moves.filter(x=>x.id!==m.id)].sort((a,b)=>b.at-a.at);renderAll();if(db)await db.doc('moves/'+m.id).set(m);else{saveLocal();cloud.q('m',m.id,m)}},
  async putMoves(list){const ids=new Set(list.map(m=>m.id));moves=moves.map(m=>ids.has(m.id)?list.find(x=>x.id===m.id):m);renderAll();for(const m of list){m.updatedAt=Date.now();if(db)await db.doc('moves/'+m.id).set(m);else cloud.q('m',m.id,m)}if(!db)saveLocal()},
  async delMove(id){moves=moves.filter(m=>m.id!==id);renderAll();if(db)await db.doc('moves/'+id).delete();else{saveLocal();cloud.q('m',id,null)}}
 };
@@ -579,7 +585,7 @@ const cloud=(()=>{const CK='sf3d.cloud',OK='sf3d.outbox',SK='sf3d.cloudSeq';
   setInterval(()=>{if(!document.hidden&&navigator.onLine!==false)sync()},3000);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync()});addEventListener('online',()=>sync())};
  return{q,sync,connect,disconnect,start,auto,paint,get cfg(){return cfg},on,HOSTED}})();
-window.__sf={get spools(){return spools},get moves(){return moves},store,cloud};
+window.__sf={get spools(){return spools},get moves(){return moves},store,cloud,handleScan:(...a)=>handleScan(...a)};
 if('serviceWorker'in navigator&&cloud.HOSTED){addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{}));
  let swr=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(swr)return;swr=true;location.reload()})}
 const fail=e=>{console.error(e);toast(e&&e.code==='quota_exceeded'?'Base pleine : supprime d\'anciennes références.':'Échec de sauvegarde, réessaie.')};
@@ -629,9 +635,9 @@ const mvRender=()=>{const c=mvCtx;if(!c)return;const s=c.s,t=c.type,q=Math.max(1
  h+=`<span class="${t==='OUT'&&after<0?'neg':'meta'}">Stock après : ${after} bobine${Math.abs(after)>1?'s':''}${t==='OUT'&&after<0?' : insuffisant':''}</span>`;
  $('#mvSum').innerHTML=h;$('#mvOk').textContent=`Valider ${t} ${q}`;$('#mvOk').style.background=t==='IN'?'var(--in)':'var(--out)';$('#mvOk').style.color='#fff'};
 const openSheet=(s,type,opt={})=>new Promise(res=>{
- mvCtx={s,type,opt,res,kind:'sale'};
+ mvCtx={s,type,opt,res,kind:'sale',t0:Date.now()};
  $('#mvHead').innerHTML=`${spoolSvg(s.hex,64,s.hex2)}<div><b>${esc(s.color||'Sans couleur')}</b><small>${esc([s.brand,s.line||s.material,s.weight&&s.weight+' g'].filter(Boolean).join(' · '))}</small><small>${opt.created?'Nouvelle référence · ':''}En stock : ${s.qty||0}${s.cost?' · coût moyen '+eur(s.cost)+'/kg':''}</small></div>`;
- $('#mvQ').value=opt.q||n;mvSetPrice();mvRender();$('#mv').showModal();
+ $('#mvQ').value=opt.q||n;mvSetPrice();mvRender();$('#mv').showModal();if(!fine){$('#mv').setAttribute('tabindex','-1');$('#mv').focus()}
  if(fine)setTimeout(()=>{$('#mvP').focus();$('#mvP').select()},30)});
 const mvSetPrice=()=>{const c=mvCtx,s=c.s;const v=c.type==='IN'?(s.buy||defBuy):(s.sell||defSell);$('#mvP').value=pfmt(v)};
 const mvClose=r=>{const c=mvCtx;mvCtx=null;$('#mv').close();if(c)c.res(r);refocus()};
@@ -641,7 +647,7 @@ $('#mvChips').addEventListener('click',e=>{const b=e.target.closest('[data-p]');
 $('#mvForm').addEventListener('click',e=>{const b=e.target.closest('[data-d]');if(!b)return;$('#mvQ').value=Math.max(1,Math.min(999,(parseInt($('#mvQ').value)||1)+ +b.dataset.d));mvRender()});
 $('#mvQ').addEventListener('input',mvRender);$('#mvP').addEventListener('input',e=>{const v=e.target.value.trim();if(mvCtx&&!/\d{8,}/.test(v)&&!/^[A-Z]{1,3}\d/i.test(v))mvCtx.lastP=v;mvRender()});
 $('#mvCancel').onclick=()=>mvClose(null);$('#mv').addEventListener('cancel',e=>{e.preventDefault();mvClose(null)});
-$('#mvForm').addEventListener('submit',async e=>{e.preventDefault();const c=mvCtx;if(!c)return;
+$('#mvForm').addEventListener('submit',async e=>{e.preventDefault();const c=mvCtx;if(!c)return;if(Date.now()-(c.t0||0)<700&&!/\d{8,}/.test($('#mvP').value+$('#mvQ').value))return;
  /* douchette : un code scanné dans un champ valide l'article en cours et traite le suivant */
  let next=null;for(const el of [$('#mvP'),$('#mvQ')]){const v=el.value.trim(),mt=v.match(/^(.*?)(\d{8,}|[A-Z]{1,3}\d{6,})$/i);if(mt&&(mt[1]===''||/^[\d.,\s]*$/.test(mt[1]))&&mt[2].length>=8){next=mt[2];const pre=mt[1].trim();el.value=el===$('#mvQ')?(pre||String(c.opt.q||n)):(pre||c.lastP||pfmt(c.type==='IN'?(c.s.buy||defBuy):(c.s.sell||defSell)))}}
  const q=Math.max(1,parseInt($('#mvQ').value)||1),pr=pnum($('#mvP').value);
@@ -678,7 +684,7 @@ const showResult=(s,m,bad,fromDb)=>{lastResult={sid:s.id,m,fromDb};
  <div class="stockline"><div><small>En stock</small><strong ${low?'class="lowtxt"':''}>${s.qty||0}</strong></div><div><small>Seuil mini</small><strong>${s.min||0}</strong></div></div>
  ${low&&spools.has(s.id)?'<p class="lowtxt" style="margin:10px 0 0">À recommander</p>':''}</div></div>`};
 
-const moveRows=(list,stack)=>list.length?`<table class="${stack?'stack':''}"><thead><tr><th>Date</th><th>Type</th><th>Filament</th><th style="text-align:right">Qté</th><th style="text-align:right">€/kg</th><th style="text-align:right">Montant</th><th style="text-align:right">Marge</th></tr></thead><tbody>${list.map(m=>`<tr><td data-l="Date" style="white-space:nowrap">${fmtD(m.at)}</td><td data-l="Type"><span class="tag ${m.type}">${m.type}</span>${m.use?' <span class="meta">usage</span>':''}</td><td data-l="Filament"><span class="dot" style="background:${esc(m.hex)}"></span>${esc(m.label)}${m.brand?' <span class="meta">· '+esc(m.brand)+'</span>':''}</td><td data-l="Qté" class="n">${m.type==='IN'?'+':'−'}${m.n}</td><td data-l="€/kg" class="n" style="font-weight:600">${m.price?eur(m.price):''}</td><td data-l="Montant" class="n">${m.amount?eur(m.amount):m.use&&m.cost?'<span class="meta">'+eur(m.cost)+'</span>':''}</td><td data-l="Marge" class="n" style="color:${(m.margin||0)>=0?'var(--in)':'var(--warn)'}">${m.margin!=null?(m.margin>=0?'+':'')+eur(m.margin):''}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">Aucun mouvement.</div>';
+const moveRows=(list,stack,act)=>list.length?`<table class="${stack?'stack':''}"><thead><tr><th>Date</th><th>Type</th><th>Filament</th><th style="text-align:right">Qté</th><th style="text-align:right">€/kg</th><th style="text-align:right">Montant</th><th style="text-align:right">Marge</th>${act?'<th></th>':''}</tr></thead><tbody>${list.map(m=>`<tr><td data-l="Date" style="white-space:nowrap">${fmtD(m.at)}</td><td data-l="Type"><span class="tag ${m.type}">${m.type}</span>${m.use?' <span class="meta">usage</span>':''}</td><td data-l="Filament"><span class="dot" style="background:${esc(m.hex)}"></span>${esc(m.label)}${m.brand?' <span class="meta">· '+esc(m.brand)+'</span>':''}</td><td data-l="Qté" class="n">${m.type==='IN'?'+':'−'}${m.n}</td><td data-l="€/kg" class="n" style="font-weight:600">${m.price?eur(m.price):''}</td><td data-l="Montant" class="n">${m.amount?eur(m.amount):m.use&&m.cost?'<span class="meta">'+eur(m.cost)+'</span>':''}</td><td data-l="Marge" class="n" style="color:${(m.margin||0)>=0?'var(--in)':'var(--warn)'}">${m.margin!=null?(m.margin>=0?'+':'')+eur(m.margin):''}</td>${act?`<td class="hact" data-l=""><button class="btn" data-undo="${esc(m.id)}" title="Annuler ce mouvement">↶</button><button class="btn" data-back="${esc(m.id)}">Revenir ici</button></td>`:''}</tr>`).join('')}</tbody></table>`:'<div class="empty">Aucun mouvement.</div>';
 
 let matF='',lowF=false,q='';
 const renderStock=()=>{const all=[...spools.values()];
@@ -694,7 +700,7 @@ const renderStock=()=>{const all=[...spools.values()];
   <div class="q"><div><b ${lw?'class="lowtxt"':''}>${s.qty||0}</b> <span>bobine${(s.qty||0)>1?'s':''}${lw?' · à recommander':''}</span></div><div class="mini"><button data-mv="OUT" aria-label="Sortie">−</button><button data-mv="IN" aria-label="Entrée">+</button></div></div></div>`}).join('')
   :`<div class="card empty" style="grid-column:1/-1">${all.length?'Aucune bobine ne correspond au filtre.':'Stock vide. Scanne ta première bobine en mode IN pour la créer.'}</div>`;
 };
-const renderAll=()=>{renderStock();if(!$('#v-dashboard').hidden)renderDash();$('#lastMoves').innerHTML=moveRows(moves.slice(0,6),true);$('#histTable').innerHTML=moveRows(moves.filter(m=>!histF||m.type===histF).slice(0,300),true);
+const renderAll=()=>{renderStock();if(!$('#v-dashboard').hidden)renderDash();$('#lastMoves').innerHTML=moveRows(moves.slice(0,6),true);$('#histTable').innerHTML=moveRows(moves.filter(m=>!histF||m.type===histF).slice(0,300),true,true);paintUndo();
  $('#matList').innerHTML=[...new Set([...MATS.map(m=>m==='NYLON'?'Nylon':m),'PLA Silk','PLA Matte',...cat().mats])].map(m=>`<option value="${esc(m)}">`).join('');
  if(lastResult){const s=spools.get(lastResult.sid);if(s&&!$('#result .pop'))showResult(s,lastResult.m,false,lastResult.fromDb)}};
 
@@ -957,6 +963,33 @@ const saveFile=(name,text,mime)=>{
 const stamp=()=>new Date().toISOString().slice(0,10);
 const csv=(rows)=>'﻿'+rows.map(r=>r.map(v=>{v=String(v??'');return/[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}).join(';')).join('\r\n');
 
+
+/* ---------- annuler / rétablir (comme Excel), basé sur l'historique ---------- */
+const RK='sf3d.redo';let redoSt=[];try{redoSt=JSON.parse(localStorage.getItem(RK)||'[]')}catch(e){}
+const saveRedo=()=>{try{localStorage.setItem(RK,JSON.stringify(redoSt.slice(-30)))}catch(e){}};
+const r4=x=>Math.round(x*1e4)/1e4;
+const recost=s=>{const ins=moves.filter(m=>m.sid===s.id&&m.type==='IN'&&m.price>0);if(!ins.length)return s.cost||0;const kg=ins.reduce((t,m)=>t+(m.kg||0),0);return kg?r4(ins.reduce((t,m)=>t+(m.kg||0)*m.price,0)/kg):(s.cost||0)};
+const undoList=async list=>{if(!list.length)return;const batch={moves:list.map(m=>({...m})),spools:[]},touched=new Map();
+ for(const m of list){const sp=touched.get(m.sid)||spools.get(m.sid);if(!sp)continue;const ns={...sp,qty:Math.max(0,(sp.qty||0)+(m.type==='IN'?-m.n:m.n))};touched.set(m.sid,ns)}
+ for(const m of list)await store.delMove(m.id);
+ for(const [id,ns] of touched){const left=moves.some(m=>m.sid===id);
+  if(!left&&!(ns.qty>0)){batch.spools.push({...spools.get(id)});await store.delSpool(id)}
+  else{batch.spools.push({...spools.get(id)});ns.cost=recost(ns);await store.setSpool(ns)}}
+ redoSt.push(batch);saveRedo();paintUndo();
+ toast(list.length>1?`${list.length} mouvements annulés`:`Annulé : ${list[0].type} ${list[0].n} ${list[0].label||''}`)};
+const redoLast=async()=>{const b=redoSt.pop();if(!b){toast('Rien à rétablir');return}saveRedo();
+ for(const sp of b.spools)await store.setSpool({...sp});
+ for(const m of [...b.moves].reverse())await store.restoreMove({...m});
+ paintUndo();toast(b.moves.length>1?`${b.moves.length} mouvements rétablis`:`Rétabli : ${b.moves[0].type} ${b.moves[0].n} ${b.moves[0].label||''}`)};
+function paintUndo(){try{const u=$('#hUndo'),r=$('#hRedo');if(!u)return;u.disabled=!moves.length;r.disabled=!redoSt.length;
+ const m=moves[0];$('#undoInfo').textContent=m?`Dernier : ${m.type} ${m.type==='IN'?'+':'−'}${m.n} ${m.label||''}`:''}catch(e){}}
+$('#hUndo').onclick=async()=>{const m=moves[0];if(!m)return;try{await undoList([m])}catch(e){fail(e)}};
+$('#hRedo').onclick=async()=>{try{await redoLast()}catch(e){fail(e)}};
+$('#histTable').addEventListener('click',async e=>{const u=e.target.closest('[data-undo]'),bk=e.target.closest('[data-back]');if(!u&&!bk)return;
+ try{if(u){const m=moves.find(x=>x.id===u.dataset.undo);if(!m)return;
+   if(!await ask('Annuler ce mouvement ?',`${m.type} ${m.type==='IN'?'+':'−'}${m.n} · ${m.label||''} du ${fmtD(m.at)}. Le stock et le bilan seront corrigés.`,'Annuler le mouvement'))return;await undoList([m])}
+  else{const m=moves.find(x=>x.id===bk.dataset.back);if(!m)return;const list=moves.filter(x=>x.at>=m.at);
+   if(!await ask('Revenir à avant ce mouvement ?',`${list.length} mouvement(s) depuis le ${fmtD(m.at)} seront annulés, comme s'ils n'avaient pas eu lieu. Tu peux tout rétablir avec ↷.`,'Revenir ici'))return;await undoList(list)}}catch(err){fail(err)}});
 /* ---------- fiche de vente PDF ---------- */
 const SK2='sf3d.sale';let saleCfg={lay:'cards',t:'Filaments disponibles',c:'',pm:'spool',g:'mat',only:true,qty:true,brand:true,set:true};try{Object.assign(saleCfg,JSON.parse(localStorage.getItem(SK2)||'{}'))}catch(e){}
 const MATT=[['PLA',[190,220,50,60]],['PETG',[230,250,70,85]],['PET',[230,250,70,85]],['ABS',[240,260,90,110]],['ASA',[240,260,90,110]],['TPU',[210,230,40,60]],['TPE',[210,230,40,60]],['PA',[260,290,80,100]],['NYLON',[250,280,70,90]],['PC',[260,300,100,120]],['HIPS',[220,240,90,110]],['PVA',[190,210,50,60]]];
