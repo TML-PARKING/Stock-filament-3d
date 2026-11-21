@@ -52,6 +52,62 @@ h2{font-size:20px;margin:0 0 14px;font-weight:800}
 .scan input{flex:1;height:60px;border-radius:16px;border:2px solid var(--line);background:var(--soft);padding:0 18px;font-size:18px;font-weight:700;letter-spacing:.02em}
 .scan input:focus{border-color:var(--acc);outline:0}
 .cst{font-size:13px;font-weight:700;margin:10px 0 0}.cst.good{color:var(--ok,#0e8a6a)}.cst.bad{color:var(--dng,#d93025)}
+
+#sale{position:fixed;inset:0;z-index:60;background:#e9ecef;overflow:auto;-webkit-overflow-scrolling:touch}
+.saletb{position:sticky;top:0;z-index:2;display:flex;gap:10px;justify-content:space-between;padding:12px 14px;background:#111418}
+.saletb .btn{height:44px}.saletb{align-items:center}.lsw{display:flex;background:#232831;border-radius:12px;padding:3px;gap:2px}.lsw .btn{height:38px;background:none;border:0;color:#c9ced6;padding:0 14px}.lsw .btn.on{background:#fff;color:#14171c}
+@media(max-width:600px){.saletb{flex-wrap:wrap}.saletb #salePrint{flex:1 1 100%;order:3}}.saletb .btn.pri{background:#ff5a1f;color:#fff;border-color:#ff5a1f}
+.sdoc{background:#fff;color:#14171c;max-width:820px;margin:16px auto 40px;padding:34px 34px 28px;font-family:Manrope,system-ui,sans-serif;box-shadow:0 10px 40px rgba(0,0,0,.12);border-radius:6px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.sdoc header{display:flex;align-items:center;gap:16px;padding-bottom:18px;border-bottom:3px solid #14171c}
+.sdoc header h1{font-size:28px;line-height:1.1;margin:0;letter-spacing:-.02em;font-weight:800;color:#14171c}
+.sdoc header p{margin:4px 0 0;font-size:13px;color:#5b616b;font-weight:600}
+.sdoc header .dt{margin-left:auto;text-align:right;font-size:12px;color:#5b616b;font-weight:600;white-space:nowrap}
+.sdoc header .dt b{display:block;font-size:22px;color:#ff5a1f;font-weight:800}
+.sdoc h2{font-size:13px;letter-spacing:.12em;text-transform:uppercase;margin:24px 0 8px;color:#14171c;display:flex;align-items:center;gap:10px;font-weight:800}
+.sdoc h2:after{content:"";flex:1;height:1px;background:#d9dde2}
+.sdoc h2 span{color:#8a9099;font-weight:700;letter-spacing:.04em}
+.sdoc table{width:100%;border-collapse:separate;border-spacing:0;font-size:14px;table-layout:fixed;background:none;border:0;margin:0}
+.sdoc col.c1{width:56px}.sdoc col.cb{width:13%}.sdoc col.c3{width:11%}.sdoc col.cs{width:17%}.sdoc col.c4{width:8%}.sdoc col.c5{width:8%}.sdoc col.c6{width:14%}
+.sdoc td.br{font-weight:800;font-size:13px}.sdoc .tset{display:block;border:0;background:none;padding:0;margin:0;font-size:12px;font-weight:700;white-space:nowrap;line-height:1.5}.sdoc .tset i{font-style:normal;color:#8a9099;font-weight:700;display:inline-block;min-width:48px}
+.sdoc thead th{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:#8a9099;font-weight:800;text-align:left;padding:6px 10px;border-bottom:1px solid #d9dde2}
+.sdoc td{padding:9px 10px;border-bottom:1px solid #eef0f3;vertical-align:middle}
+.sdoc tbody td{background:#fff!important;color:#14171c}.sdoc tbody tr:nth-child(even) td{background:#f5f6f8!important}.sdoc td,.sdoc th{border-left:0;border-right:0;border-top:0}
+.sdoc tr{break-inside:avoid;page-break-inside:avoid}
+.sdoc td.csw{padding-right:2px}
+.sdoc td.csw svg{display:block}
+.sdoc .nm b{display:block;font-size:15px;font-weight:800;color:#14171c}
+.sdoc .nm small{display:block;font-size:12px;color:#6b717b;font-weight:600;margin-top:1px}
+.sdoc .mtag{display:inline-block;height:auto;width:auto;min-width:0;line-height:1.35;font-size:11.5px;font-weight:800;padding:4px 10px;border-radius:6px;background:#14171c;color:#fff;letter-spacing:.04em;white-space:nowrap}
+.sdoc .num{text-align:right;white-space:nowrap;font-weight:700}
+.sdoc .pr{text-align:right;white-space:nowrap}
+.sdoc .pr b{font-size:17px;font-weight:800;color:#14171c}
+.sdoc .pr small{display:block;font-size:11px;color:#6b717b;font-weight:700}
+.sdoc .pr .ask{font-size:12px;color:#6b717b;font-weight:700;white-space:normal;display:block;line-height:1.3}
+.sdoc th.pr,.sdoc th.num{text-align:right}
+.sdoc footer span:last-child{white-space:nowrap;flex-shrink:0}.sdoc footer{margin-top:22px;padding-top:12px;border-top:1px solid #d9dde2;font-size:11.5px;color:#6b717b;display:flex;justify-content:space-between;gap:12px;font-weight:600}
+@media (max-width:600px){.sdoc{margin:0;border-radius:0;padding:20px 14px}.sdoc header h1{font-size:22px}.sdoc td{padding:8px 6px}.sdoc td.csw{width:46px}.sdoc .nm b{font-size:14px}.sdoc .pr b{font-size:15px}}
+@media print{@page{size:A4;margin:12mm}
+ .sdoc .sgrid{grid-template-columns:repeat(3,1fr)!important}
+ html,body{background:#fff!important}body>*:not(#sale){display:none!important}#sale{position:static;background:#fff;overflow:visible}.noprint{display:none!important}
+ .sdoc{box-shadow:none;margin:0;max-width:none;padding:0;border-radius:0}thead{display:table-header-group}}
+
+.sdoc .sgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.sdoc .scard{border:1px solid #e3e6ea;border-radius:14px;overflow:hidden;background:#fff;break-inside:avoid;page-break-inside:avoid;display:flex;flex-direction:column}
+.sdoc .sch{position:relative;display:flex;align-items:center;justify-content:center;padding:16px 0 14px;background:linear-gradient(160deg,color-mix(in srgb,var(--h) 22%,#fff),color-mix(in srgb,var(--h) 8%,#f6f7f9))}
+.sdoc .sch svg{filter:drop-shadow(0 6px 10px rgba(0,0,0,.18))}
+.sdoc .sq{position:absolute;top:10px;right:10px;font-size:11px;font-weight:800;background:#14171c;color:#fff;padding:3px 8px;border-radius:99px}
+.sdoc .sq.z{background:#d93025}
+.sdoc .scb{padding:11px 13px 12px;display:flex;flex-direction:column;gap:5px;flex:1}
+.sdoc .sct{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.sdoc .sct b{font-size:15px;font-weight:800;line-height:1.2;color:#14171c}
+.sdoc .scs{font-size:12px;color:#6b717b;font-weight:700}
+.sdoc .scm{display:flex;flex-direction:column;gap:2px;font-size:12px;font-weight:800;color:#14171c;margin-top:2px}.sdoc .scm i{font-style:normal;color:#8a9099;font-weight:700;display:inline-block;min-width:54px}
+.sdoc .scp{margin-top:auto;padding-top:8px;border-top:1px dashed #e3e6ea;display:flex;align-items:baseline;gap:6px}
+.sdoc .scp i{font-style:normal;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8a9099}
+.sdoc .scp b{font-size:20px;font-weight:800;color:#ff5a1f;margin-left:auto}
+.sdoc .scp small{font-size:11px;color:#6b717b;font-weight:700}
+.sdoc .scp em{font-style:normal;font-size:12.5px;font-weight:800;color:#6b717b;margin-left:auto}
+@media (max-width:600px){.sdoc .sgrid{grid-template-columns:repeat(2,1fr);gap:8px}.sdoc .sch svg{width:66px;height:66px}.sdoc .scp b{font-size:17px}.sdoc .scb{padding:9px 10px}}
 .chk2 .ckrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--line,#2a2e35)}.chk2 .ckrow small{display:block;opacity:.7;font-size:13px;margin-top:2px}.ckbtn{display:flex;gap:8px;flex-wrap:wrap}.ckbtn .btn{height:40px;font-size:14px}
 .chk{display:flex;align-items:center;gap:10px;font-size:14px;margin:12px 0 4px}.chk input{width:20px;height:20px;accent-color:var(--acc)}
 .btn{height:48px;padding:0 18px;border-radius:14px;font-weight:700;background:var(--soft);display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;text-decoration:none}
@@ -241,7 +297,7 @@ input[type=color]{padding:4px}
 
   <section class="view" id="v-stock" hidden>
    <div class="top"><div><h1 id="stockTitle">Stock filament</h1><p class="sub">Touche une bobine pour la modifier. − / + pour une sortie ou entrée rapide.</p></div>
-    <button class="btn pri" id="addBtn">+ Nouvelle référence</button></div>
+    <div class="row" style="margin:0"><button class="btn pri" id="addBtn">+ Nouvelle référence</button><button class="btn" id="saleBtn">Fiche de vente PDF</button></div></div>
    <div class="kpis">
     <div class="card kpi"><small>Bobines en stock</small><b id="k1">0</b></div>
     <div class="card kpi"><small>Références</small><b id="k2">0</b></div>
@@ -288,7 +344,7 @@ input[type=color]{padding:4px}
   </section>
 
   <section class="view" id="v-reglages" hidden>
-   <div class="top"><div><h1>Réglages et sauvegarde</h1><p class="sub" id="storeInfo">—</p><p style="font-size:12px;opacity:.6;margin-top:4px">Version 2.7 · 21/11/2026</p></div></div>
+   <div class="top"><div><h1>Réglages et sauvegarde</h1><p class="sub" id="storeInfo">—</p><p style="font-size:12px;opacity:.6;margin-top:4px">Version 3.0 · 21/11/2026</p></div></div>
    <div class="set">
     <div class="card"><h2>Prix par défaut</h2><p>Proposés quand une bobine n'a pas encore de prix. Chaque référence retient ensuite son dernier prix d'achat et de vente.</p>
      <div class="fg"><label>Achat (€/kg)<input id="defBuy" inputmode="decimal" placeholder="ex. 15"></label><label>Revente (€/kg)<input id="defSell" inputmode="decimal" placeholder="ex. 25"></label></div></div>
@@ -302,7 +358,7 @@ input[type=color]{padding:4px}
     <div class="card"><h2>Sauvegarde</h2><p>Fichier JSON avec tout le stock et l'historique. À garder en lieu sûr, ou pour passer d'un appareil à l'autre.</p>
      <div class="row"><button class="btn pri" id="expJson">Exporter</button><label class="btn">Importer<input type="file" id="impJson" accept=".json,application/json" hidden></label></div></div>
     <div class="card"><h2>Export Excel</h2><p>Stock actuel ou historique au format CSV (séparateur point-virgule), s'ouvre directement dans Excel.</p>
-     <div class="row"><button class="btn" id="expCsv">Stock CSV</button><button class="btn" id="expHist">Historique CSV</button></div></div>
+     <div class="row"><button class="btn pri" id="saleBtn2">Fiche de vente PDF</button><button class="btn" id="expCsv">Stock CSV</button><button class="btn" id="expHist">Historique CSV</button></div></div>
     <div class="card"><h2>Base filaments</h2><p id="dbInfo">—</p></div>
     <div class="card"><h2>Remise à zéro</h2><p>Efface toutes les bobines et l'historique de cet appareil. Fais d'abord une sauvegarde.</p>
      <div class="row"><button class="btn dng" id="wipe">Tout effacer</button></div></div>
@@ -370,6 +426,17 @@ input[type=color]{padding:4px}
  <div class="mvsum" id="mvSum"></div>
  <div class="dlgfoot"><button type="button" class="btn" id="mvCancel">Annuler</button><button class="btn pri big" id="mvOk" style="flex:1;max-width:260px">Valider</button></div>
 </form></dialog>
+<dialog id="saleDlg"><form class="dlg" method="dialog" id="saleForm"><h2>Fiche de vente</h2><p class="sub" style="margin:0 0 12px">Un tableau propre de tes bobines à vendre, avec couleur, matière, poids et prix. Enregistre-le en PDF ou imprime-le.</p>
+ <div class="fg"><label>Titre<input name="t" maxlength="60"></label><label>Sous-titre / contact<input name="c" maxlength="90" placeholder="ex. Donovan · 04xx xx xx xx · Hornu"></label></div>
+ <div class="fg"><label>Présentation<select name="lay"><option value="cards">Cartes</option><option value="table">Liste</option></select></label></div>
+ <div class="fg"><label>Prix affiché<select name="pm"><option value="spool">Par bobine</option><option value="kg">Au kg</option><option value="both">Les deux</option></select></label><label>Classement<select name="g"><option value="mat">Par matière</option><option value="brand">Par marque</option><option value="none">Sans groupe</option></select></label></div>
+ <label class="chk"><input type="checkbox" name="only" checked> Seulement les bobines en stock</label>
+ <label class="chk"><input type="checkbox" name="qty"> Afficher la quantité disponible</label>
+ <label class="chk"><input type="checkbox" name="brand" checked> Afficher la marque</label>
+ <label class="chk"><input type="checkbox" name="set" checked> Afficher les réglages d'impression (buse / plateau)</label>
+ <p class="sub" id="saleInfo" style="margin:10px 0 0"></p>
+ <div class="row"><button class="btn" value="cancel" formnovalidate>Annuler</button><button class="btn pri" id="saleGo" value="ok">Voir la fiche</button></div></form></dialog>
+<div id="sale" hidden><div class="saletb noprint"><button class="btn" id="saleClose">← Retour</button><div class="lsw"><button class="btn" data-lay="cards">Cartes</button><button class="btn" data-lay="table">Liste</button></div><button class="btn pri" id="salePrint">Enregistrer en PDF / Imprimer</button></div><div id="saleDoc"></div></div>
 <dialog id="ask"><div class="dlg"><h2 id="askT">Confirmer</h2><p id="askP" class="meta" style="margin:0"></p>
  <div class="dlgfoot"><span></span><span style="display:flex;gap:10px"><button class="btn" id="askNo">Annuler</button><button class="btn pri" id="askYes" style="background:var(--warn);color:#fff">Confirmer</button></span></div></div></dialog>
 
@@ -869,6 +936,47 @@ const saveFile=(name,text,mime)=>{
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:mime}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000)};
 const stamp=()=>new Date().toISOString().slice(0,10);
 const csv=(rows)=>'﻿'+rows.map(r=>r.map(v=>{v=String(v??'');return/[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}).join(';')).join('\r\n');
+
+/* ---------- fiche de vente PDF ---------- */
+const SK2='sf3d.sale';let saleCfg={lay:'cards',t:'Filaments disponibles',c:'',pm:'spool',g:'mat',only:true,qty:true,brand:true,set:true};try{Object.assign(saleCfg,JSON.parse(localStorage.getItem(SK2)||'{}'))}catch(e){}
+const MATT=[['PLA',[190,220,50,60]],['PETG',[230,250,70,85]],['PET',[230,250,70,85]],['ABS',[240,260,90,110]],['ASA',[240,260,90,110]],['TPU',[210,230,40,60]],['TPE',[210,230,40,60]],['PA',[260,290,80,100]],['NYLON',[250,280,70,90]],['PC',[260,300,100,120]],['HIPS',[220,240,90,110]],['PVA',[190,210,50,60]]];
+const tempsOf=s=>{const t=s.temps;if(t&&(t[0]||t[1]))return t;const m=(s.material||'').toUpperCase().replace(/[^A-Z]/g,'');for(const[k,v]of MATT)if(m.startsWith(k))return v;return null};
+const sellKg=s=>s.sell>0?s.sell:(defSell>0?defSell:0);
+const openSale=()=>{const f=$('#saleForm');for(const k of['t','c','pm','g','lay'])f[k].value=saleCfg[k]??(k==='lay'?'cards':'');for(const k of['only','qty','brand','set'])f[k].checked=saleCfg[k]!==false&&!!(saleCfg[k]??true);
+ const upd=()=>{const L=[...spools.values()].filter(x=>!f.only.checked||(x.qty||0)>0),np=L.filter(x=>!sellKg(x)).length;
+  $('#saleInfo').innerHTML=`${L.length} référence(s) sur la fiche`+(np?` · <b style="color:var(--dng,#d93025)">${np} sans prix de revente</b> (affichées « Prix sur demande »)`:'')};
+ f.only.onchange=upd;upd();$('#saleDlg').showModal()};
+$('#saleBtn').onclick=openSale;$('#saleBtn2').onclick=openSale;
+$('#saleForm').addEventListener('submit',e=>{if(e.submitter&&e.submitter.value!=='ok')return;const f=e.target;
+ saleCfg={lay:f.lay.value,t:f.t.value.trim()||'Filaments disponibles',c:f.c.value.trim(),pm:f.pm.value,g:f.g.value,only:f.only.checked,qty:f.qty.checked,brand:f.brand.checked,set:f.set.checked};
+ try{localStorage.setItem(SK2,JSON.stringify(saleCfg))}catch(err){}setTimeout(buildSale,0)});
+const buildSale=()=>{const c=saleCfg;let L=[...spools.values()].filter(x=>!c.only||(x.qty||0)>0);
+ const key=x=>c.g==='mat'?(x.material||'Autre'):c.g==='brand'?(x.brand||'Autres'):'';
+ L.sort((a,b)=>key(a).localeCompare(key(b),'fr')||(a.brand||'').localeCompare(b.brand||'','fr')||(a.line||'').localeCompare(b.line||'','fr')||(a.color||'').localeCompare(b.color||'','fr'));
+ const groups=new Map();for(const x of L){const k=key(x);if(!groups.has(k))groups.set(k,[]);groups.get(k).push(x)}
+ const wt=x=>{const g=+x.weight||1000;return g>=1000?(g/1000).toLocaleString('fr-BE',{maximumFractionDigits:2})+' kg':g+' g'};
+ const price=x=>{const pk=sellKg(x);if(!pk)return'<span class="ask">Prix sur demande</span>';const ps=pk*kgOf(x);
+  return c.pm==='kg'?`<b>${eur(pk)}</b><small>le kg</small>`:c.pm==='both'?`<b>${eur(ps)}</b><small>${eur(pk)} / kg</small>`:`<b>${eur(ps)}</b><small>la bobine</small>`};
+ const head=`<colgroup><col class="c1"><col>${c.brand?'<col class="cb">':''}<col class="c3">${c.set?'<col class="cs">':''}<col class="c4">${c.qty?'<col class="c5">':''}<col class="c6"></colgroup><thead><tr><th></th><th>Couleur</th>${c.brand?'<th>Marque</th>':''}<th>Matière</th>${c.set?'<th>Réglages</th>':''}<th class="num">Poids</th>${c.qty?'<th class="num">Dispo</th>':''}<th class="pr">Prix</th></tr></thead>`;
+ const rg=(a,b)=>a&&b&&a!==b?a+'–'+b:(a||b||'?');
+ const setT=x=>{const t=tempsOf(x);if(!t)return'<span class="ask">—</span>';return `<span class="tset"><i>Buse</i> ${rg(t[0],t[1])} °C</span>`+(t[2]||t[3]?`<span class="tset"><i>Plateau</i> ${rg(t[2],t[3])} °C</span>`:'')};
+ const row=x=>`<tr><td class="csw">${spoolSvg(x.hex,46,x.hex2)}</td><td class="nm"><b>${esc(x.color||'Sans couleur')}</b>${x.line&&x.line!==x.material?`<small>${esc(x.line)}</small>`:''}</td>${c.brand?`<td class="br">${esc(x.brand||'—')}</td>`:''}<td><span class="mtag">${esc(x.material||'—')}</span></td>${c.set?`<td class="cset">${setT(x)}</td>`:''}<td class="num">${wt(x)}</td>${c.qty?`<td class="num">${x.qty||0}</td>`:''}<td class="pr">${price(x)}</td></tr>`;
+ const card=x=>{const t=c.set?tempsOf(x):null,q=x.qty||0;
+  return `<div class="scard"><div class="sch" style="--h:${esc(x.hex||'#999')}">${spoolSvg(x.hex,84,x.hex2)}${c.qty?`<span class="sq${q?'':' z'}">${q?q+' dispo':'Épuisé'}</span>`:''}</div>
+  <div class="scb"><div class="sct"><b>${esc(x.color||'Sans couleur')}</b><span class="mtag">${esc(x.material||'—')}</span></div>
+  ${c.brand||x.line?`<small class="scs">${esc([c.brand?x.brand:'',x.line&&x.line!==x.material?x.line:''].filter(Boolean).join(' · '))}</small>`:''}
+  <div class="scm"><span><i>Poids</i>${wt(x)}</span>${t?`<span><i>Buse</i>${rg(t[0],t[1])} °C</span>${t[2]||t[3]?`<span><i>Plateau</i>${rg(t[2],t[3])} °C</span>`:''}`:''}</div>
+  <div class="scp">${(()=>{const pk=sellKg(x);if(!pk)return'<em>Prix sur demande</em>';const ps=pk*kgOf(x);return c.pm==='kg'?`<i>Prix</i><b>${eur(pk)}</b><small>/ kg</small>`:c.pm==='both'?`<i>Prix</i><b>${eur(ps)}</b><small>${eur(pk)} / kg</small>`:`<i>Prix</i><b>${eur(ps)}</b><small>la bobine</small>`})()}</div></div></div>`};
+ const d=new Date(),tot=L.reduce((t,x)=>t+(x.qty||0),0);
+ $('#saleDoc').innerHTML=`<div class="sdoc"><header>${spoolSvg('#ff5a1f',58)}<div><h1>${esc(c.t)}</h1>${c.c?`<p>${esc(c.c)}</p>`:''}</div><div class="dt"><b>${L.length}</b>coloris${c.qty?` · ${tot} bobines`:''}<br>${d.toLocaleDateString('fr-BE',{day:'2-digit',month:'long',year:'numeric'})}</div></header>`+
+  [...groups].map(([k,list])=>(k?`<h2>${esc(k)} <span>${list.length}</span></h2>`:'<div style="height:14px"></div>')+(c.lay==='table'?`<table>${head}<tbody>${list.map(row).join('')}</tbody></table>`:`<div class="sgrid">${list.map(card).join('')}</div>`)).join('')+
+  `<footer><span>Prix ${c.pm==='kg'?'au kg':'par bobine'}, ø 1,75 mm sauf mention.${c.set?' Réglages indicatifs (fabricant ou valeurs usuelles de la matière).':''} Dans la limite des stocks disponibles.</span><span>${d.toLocaleDateString('fr-BE')}</span></footer></div>`;
+ document.querySelectorAll('.lsw [data-lay]').forEach(b=>b.classList.toggle('on',b.dataset.lay===(c.lay||'cards')));
+ $('#sale').hidden=false;document.body.style.overflow='hidden'};
+document.querySelectorAll('.lsw [data-lay]').forEach(b=>b.onclick=()=>{saleCfg.lay=b.dataset.lay;try{localStorage.setItem(SK2,JSON.stringify(saleCfg))}catch(e){}buildSale()});
+$('#saleClose').onclick=()=>{$('#sale').hidden=true;document.body.style.overflow=''};
+$('#salePrint').onclick=()=>{const t=document.title;document.title=(saleCfg.t||'Fiche de vente').replace(/[^\wÀ-ÿ -]/g,'')+' '+stamp();
+ if(window.claude){toast('L\'impression est bloquée dans cette vue : ouvre l\'app en ligne')}else window.print();setTimeout(()=>document.title=t,1500)};
 $('#expJson').onclick=()=>{saveFile(`stock-filament-${stamp()}.json`,JSON.stringify({app:'stock-filament-3d',v:1,at:Date.now(),spools:[...spools.values()],moves},null,1),'application/json');toast('Sauvegarde exportée')};
 $('#expCsv').onclick=()=>saveFile(`stock-filament-${stamp()}.csv`,csv([['Code','Marque','Matière','Gamme','Couleur','Teinte','Diamètre','Poids (g)','Stock','Seuil mini','Emplacement','Coût moyen €/kg','Prix revente €/kg','Valeur stock €'],...[...spools.values()].map(s=>[s.code,s.brand,s.material,s.line,s.color,s.hex,s.diameter,s.weight,s.qty||0,s.min||0,s.loc,pfmt(s.cost),pfmt(s.sell),pfmt((s.qty||0)*kgOf(s)*(s.cost||0))])]),'text/csv');
 $('#expHist').onclick=()=>saveFile(`historique-filament-${stamp()}.csv`,csv([['Date','Type','Quantité','kg','Filament','Marque','Code','Prix €/kg','Montant €','Coût €','Marge €','Usage perso'],...moves.map(m=>[new Date(m.at).toLocaleString('fr-BE'),m.type,m.n,pfmt(m.kg),m.label,m.brand,m.code,pfmt(m.price),pfmt(m.amount),pfmt(m.cost),m.margin!=null?String(Math.round(m.margin*100)/100).replace('.',','):'',m.use?'oui':''])]),'text/csv');
