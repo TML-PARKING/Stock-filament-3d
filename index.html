@@ -369,7 +369,7 @@ input[type=color]{padding:4px}
   </section>
 
   <section class="view" id="v-reglages" hidden>
-   <div class="top"><div><h1>Réglages et sauvegarde</h1><p class="sub" id="storeInfo">—</p><p style="font-size:12px;opacity:.6;margin-top:4px">Version 3.3 · 21/11/2026</p></div></div>
+   <div class="top"><div><h1>Réglages et sauvegarde</h1><p class="sub" id="storeInfo">—</p><p style="font-size:12px;opacity:.6;margin-top:4px">Version 3.4 · 21/11/2026</p></div></div>
    <div class="set">
     <div class="card"><h2>Prix par défaut</h2><p>Proposés quand une bobine n'a pas encore de prix. Chaque référence retient ensuite son dernier prix d'achat et de vente.</p>
      <div class="fg"><label>Achat (€/kg)<input id="defBuy" inputmode="decimal" placeholder="ex. 15"></label><label>Revente (€/kg)<input id="defSell" inputmode="decimal" placeholder="ex. 25"></label></div></div>
@@ -656,7 +656,7 @@ $('#mvForm').addEventListener('submit',async e=>{e.preventDefault();const c=mvCt
  if(c.opt.created)await store.setSpool(c.s);
  const r=await applyMove(c.s,c.type,q,{...c.opt,price:c.type==='OUT'&&c.kind==='use'?0:pr,sale:c.kind!=='use',keepN:c.opt.fromCam});
  c.res(r?{s:r,q,type:c.type}:null);refocus();if(next)setTimeout(()=>handleScan(next),60)});
-const doMove=async(s,type,q,opt={})=>{if(confirmOn()){const r=await openSheet(s,type,{...opt,q});return r?{ok:true,s:r.s,n:r.q,type:r.type}:{cancel:true}}
+const doMove=async(s,type,q,opt={})=>{if(confirmOn()||opt.fromCam){const r=await openSheet(s,type,{...opt,q});return r?{ok:true,s:r.s,n:r.q,type:r.type}:{cancel:true}}
  if(opt.created)await store.setSpool(s);const r=await applyMove(s,type,q,opt);return{ok:!!r,s:r||s,n:q,type}};
 /* renvoie {ok, info} ; ouvre la fiche si inconnu (sauf en mode caméra) */
 const handleScan=async(raw,hint,fromCam)=>{
@@ -1084,7 +1084,7 @@ addEventListener('hashchange',route);
 if(window.claude)$('#camBtn').hidden=true;
 $('#defBuy').value=pfmt(defBuy);$('#defSell').value=pfmt(defSell);
 for(const[id,k]of[['defBuy','sf3d.defBuy'],['defSell','sf3d.defSell']])$('#'+id).addEventListener('change',e=>{const v=pnum(e.target.value);try{localStorage.setItem(k,v??'')}catch(x){}if(id==='defBuy')defBuy=v;else defSell=v;e.target.value=pfmt(v);toast('Prix par défaut enregistré')});
-try{const cm=localStorage.getItem('sf3d.confirm');if(cm!==null)$('#confirmMode').checked=cm==='1'}catch(e){}
+try{if(!localStorage.getItem('sf3d.confirmV2')){localStorage.setItem('sf3d.confirm','1');localStorage.setItem('sf3d.confirmV2','1')}const cm=localStorage.getItem('sf3d.confirm');if(cm!==null)$('#confirmMode').checked=cm==='1'}catch(e){}
 $('#confirmMode').addEventListener('change',e=>{try{localStorage.setItem('sf3d.confirm',e.target.checked?'1':'0')}catch(x){}});
 renderPend();
 route();

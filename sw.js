@@ -1,5 +1,5 @@
 // Stock Filament 3D — réseau d'abord (toujours la dernière version), cache si hors ligne
-const C = 'sf3d-v2';
+const C = 'sf3d-v3';
 self.addEventListener('install', e => { self.skipWaiting(); });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== C).map(k => caches.delete(k)))).then(() => self.clients.claim()));
