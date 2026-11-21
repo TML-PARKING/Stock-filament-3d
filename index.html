@@ -99,6 +99,7 @@ h2{font-size:20px;margin:0 0 14px;font-weight:800}
  html .sdoc .scm{flex-direction:row;flex-wrap:wrap;gap:0 8px;font-size:9.5px;line-height:1.35;margin-top:1px}html .sdoc .scm i{min-width:0;margin-right:3px}
  html .sdoc .scp{padding-top:2px;margin-top:3px;gap:4px}html .sdoc .scp i{font-size:8px}html .sdoc .scp b{font-size:15px;white-space:nowrap}html .sdoc .scp small{display:none}html .sdoc .scp em{font-size:9.5px}
  html .sdoc footer{margin-top:10px;font-size:9.5px}
+ html .sdoc td{padding:4px 8px}html .sdoc td.csw svg{width:32px;height:32px}html .sdoc col.c1{width:42px}html .sdoc .nm b{font-size:12.5px}html .sdoc .nm small,html .sdoc .pr small{font-size:9.5px}html .sdoc .pr b{font-size:14px}html .sdoc td.br{font-size:11.5px}html .sdoc .tset{font-size:10px;line-height:1.35}html .sdoc .num{font-size:12px}html .sdoc table .mtag{font-size:9.5px;padding:2px 6px}html .sdoc thead th,html .sdoc thead th.num{padding:4px 8px;font-size:9px}
  html,body{background:#fff!important}body>*:not(#sale){display:none!important}#sale{position:static;background:#fff;overflow:visible}.noprint{display:none!important}
  html .sdoc{box-shadow:none;margin:0;max-width:none;padding:0;border-radius:0}thead{display:table-header-group}}
 
@@ -119,6 +120,14 @@ h2{font-size:20px;margin:0 0 14px;font-weight:800}
 .sdoc .scp small{font-size:11px;color:#6b717b;font-weight:700}
 .sdoc .scp em{font-style:normal;font-size:12.5px;font-weight:800;color:#6b717b;margin-left:auto}
 @media (max-width:600px){.sdoc .sgrid{grid-template-columns:repeat(2,1fr);gap:8px}.sdoc .sch svg{width:66px;height:66px}.sdoc .scp b{font-size:17px}.sdoc .scb{padding:9px 10px}}
+.sdoc .mob{display:none}
+@media screen and (max-width:700px){.sdoc table{table-layout:auto}.sdoc col{width:auto!important}.sdoc .dsk{display:none!important}.sdoc .mob{display:block}
+ .sdoc thead th{padding:6px 6px}.sdoc td.csw{width:50px;padding:8px 4px 8px 0}.sdoc td.csw svg{width:44px;height:44px}
+ .sdoc .nm b{font-size:15px}.sdoc .mob small{display:block;font-size:12px;color:#6b717b;font-weight:700;margin-top:1px}
+ .sdoc .mobm{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:5px;font-size:12px;font-weight:800;color:#14171c}
+ .sdoc .mobm .mtag{font-size:10.5px;padding:2px 7px}.sdoc .mq{background:#eef0f3;border-radius:99px;padding:2px 8px}
+ .sdoc .mobt{margin-top:4px!important;font-size:11.5px!important;color:#3d434c!important}
+ .sdoc td.pr{width:1%;padding-left:8px}}
 .chk2 .ckrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--line,#2a2e35)}.chk2 .ckrow small{display:block;opacity:.7;font-size:13px;margin-top:2px}.ckbtn{display:flex;gap:8px;flex-wrap:wrap}.ckbtn .btn{height:40px;font-size:14px}
 .chk{display:flex;align-items:center;gap:10px;font-size:14px;margin:12px 0 4px}.chk input{width:20px;height:20px;accent-color:var(--acc)}
 .btn{height:48px;padding:0 18px;border-radius:14px;font-weight:700;background:var(--soft);display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;text-decoration:none}
@@ -355,7 +364,7 @@ input[type=color]{padding:4px}
   </section>
 
   <section class="view" id="v-reglages" hidden>
-   <div class="top"><div><h1>Réglages et sauvegarde</h1><p class="sub" id="storeInfo">—</p><p style="font-size:12px;opacity:.6;margin-top:4px">Version 3.1 · 21/11/2026</p></div></div>
+   <div class="top"><div><h1>Réglages et sauvegarde</h1><p class="sub" id="storeInfo">—</p><p style="font-size:12px;opacity:.6;margin-top:4px">Version 3.2 · 21/11/2026</p></div></div>
    <div class="set">
     <div class="card"><h2>Prix par défaut</h2><p>Proposés quand une bobine n'a pas encore de prix. Chaque référence retient ensuite son dernier prix d'achat et de vente.</p>
      <div class="fg"><label>Achat (€/kg)<input id="defBuy" inputmode="decimal" placeholder="ex. 15"></label><label>Revente (€/kg)<input id="defSell" inputmode="decimal" placeholder="ex. 25"></label></div></div>
@@ -968,10 +977,12 @@ const buildSale=()=>{const c=saleCfg;let L=[...spools.values()].filter(x=>!c.onl
  const wt=x=>{const g=+x.weight||1000;return g>=1000?(g/1000).toLocaleString('fr-BE',{maximumFractionDigits:2})+' kg':g+' g'};
  const price=x=>{const pk=sellKg(x);if(!pk)return'<span class="ask">Prix sur demande</span>';const ps=pk*kgOf(x);
   return c.pm==='kg'?`<b>${eur(pk)}</b><small>le kg</small>`:c.pm==='both'?`<b>${eur(ps)}</b><small>${eur(pk)} / kg</small>`:`<b>${eur(ps)}</b><small>la bobine</small>`};
- const head=`<colgroup><col class="c1"><col>${c.brand?'<col class="cb">':''}<col class="c3">${c.set?'<col class="cs">':''}<col class="c4">${c.qty?'<col class="c5">':''}<col class="c6"></colgroup><thead><tr><th></th><th>Couleur</th>${c.brand?'<th>Marque</th>':''}<th>Matière</th>${c.set?'<th>Réglages</th>':''}<th class="num">Poids</th>${c.qty?'<th class="num">Dispo</th>':''}<th class="pr">Prix</th></tr></thead>`;
+ const head=`<colgroup><col class="c1"><col>${c.brand?'<col class="cb">':''}<col class="c3">${c.set?'<col class="cs">':''}<col class="c4">${c.qty?'<col class="c5">':''}<col class="c6"></colgroup><thead><tr><th></th><th>Couleur</th>${c.brand?'<th class="dsk">Marque</th>':''}<th class="dsk">Matière</th>${c.set?'<th class="dsk">Réglages</th>':''}<th class="num dsk">Poids</th>${c.qty?'<th class="num dsk">Dispo</th>':''}<th class="pr">Prix</th></tr></thead>`;
  const rg=(a,b)=>a&&b&&a!==b?a+'–'+b:(a||b||'?');
  const setT=x=>{const t=tempsOf(x);if(!t)return'<span class="ask">—</span>';return `<span class="tset"><i>Buse</i> ${rg(t[0],t[1])} °C</span>`+(t[2]||t[3]?`<span class="tset"><i>Plateau</i> ${rg(t[2],t[3])} °C</span>`:'')};
- const row=x=>`<tr><td class="csw">${spoolSvg(x.hex,46,x.hex2)}</td><td class="nm"><b>${esc(x.color||'Sans couleur')}</b>${x.line&&x.line!==x.material?`<small>${esc(x.line)}</small>`:''}</td>${c.brand?`<td class="br">${esc(x.brand||'—')}</td>`:''}<td><span class="mtag">${esc(x.material||'—')}</span></td>${c.set?`<td class="cset">${setT(x)}</td>`:''}<td class="num">${wt(x)}</td>${c.qty?`<td class="num">${x.qty||0}</td>`:''}<td class="pr">${price(x)}</td></tr>`;
+ const mob=x=>{const t=c.set?tempsOf(x):null,l1=[c.brand?x.brand:'',x.line&&x.line!==x.material?x.line:''].filter(Boolean).join(' · ');
+  return `<div class="mob">${l1?`<small>${esc(l1)}</small>`:''}<div class="mobm"><span class="mtag">${esc(x.material||'—')}</span><span>${wt(x)}</span>${c.qty?`<span class="mq">${x.qty||0} dispo</span>`:''}</div>${t?`<small class="mobt">Buse ${rg(t[0],t[1])} °C · Plateau ${rg(t[2],t[3])} °C</small>`:''}</div>`};
+ const row=x=>`<tr><td class="csw">${spoolSvg(x.hex,46,x.hex2)}</td><td class="nm"><b>${esc(x.color||'Sans couleur')}</b>${x.line&&x.line!==x.material?`<small class="dsk">${esc(x.line)}</small>`:''}${mob(x)}</td>${c.brand?`<td class="br dsk">${esc(x.brand||'—')}</td>`:''}<td class="dsk"><span class="mtag">${esc(x.material||'—')}</span></td>${c.set?`<td class="cset dsk">${setT(x)}</td>`:''}<td class="num dsk">${wt(x)}</td>${c.qty?`<td class="num dsk">${x.qty||0}</td>`:''}<td class="pr">${price(x)}</td></tr>`;
  const card=x=>{const t=c.set?tempsOf(x):null,q=x.qty||0;
   return `<div class="scard"><div class="sch" style="--h:${esc(x.hex||'#999')}">${spoolSvg(x.hex,84,x.hex2)}${c.qty?`<span class="sq${q?'':' z'}">${q?q+' dispo':'Épuisé'}</span>`:''}</div>
   <div class="scb"><div class="sct"><b>${esc(x.color||'Sans couleur')}</b><span class="mtag">${esc(x.material||'—')}</span></div>
